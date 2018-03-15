@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.dase</groupId>
+    <artifactId>inductivereasoning</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+
+    <properties>
+        <finalAppName>Inductive Reasoning</finalAppName>
+
+        <jdk.source.version>1.8</jdk.source.version>
+        <jdk.target.version>1.8</jdk.target.version>
+
+        <jena.version>3.6.0</jena.version>
+        <gson.version>2.8.2</gson.version>
+        <commons-math.version>3.6.1</commons-math.version>
+        <guava.version>23.0</guava.version>
+        <junit.version>4.12</junit.version>
+
+        <!--<owlapi.version>5.1.4</owlapi.version>-->
+        <!--<jfact.version>5.0.1</jfact.version>-->
+        <!--<hermit.version>1.4.1.513</hermit.version>-->
+        <!--<secondstring.version>0.1</secondstring.version>-->
+
+        <!--<slf4j.version>1.7.21</slf4j.version>-->
+        <!--<log4j.version>1.2.17</log4j.version>-->
+        <!--<testng.version>6.11</testng.version>-->
+
+        <maven-eclipse-plugin.version>2.10</maven-eclipse-plugin.version>
+        <maven-shade-plugin.version>3.0.0</maven-shade-plugin.version>
+        <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
+
+        <mainclass>org.dase.Main</mainclass>
+    </properties>
+
+
+    <!--
+    dependencies {
+    // This dependency is exported to consumers, that is to say found on their compile classpath.
+    //api 'org.apache.commons:commons-math3:3.6.1'
+
+    // This dependency is used internally, and not exposed to consumers on their own compile classpath.
+    implementation 'com.google.guava:guava:23.0'
+
+    // Use JUnit test framework
+    compile 'junit:junit:4.12'
+
+    // apache jena
+    //  https://mvnrepository.com/artifact/org.apache.jena/apache-jena-libs
+    compile 'org.apache.jena:apache-jena-libs:3.6.0'
+
+    // google guava
+    compile 'com.google.guava:guava:24.0-jre'
+
+    // google json for java
+    compile 'com.google.code.gson:gson:2.8.2'
+
+    }
+    -->
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>apache-jena-libs</artifactId>
+            <version>${jena.version}</version>
+            <type>pom</type>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>${commons-math.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+
+    <build>
+        <finalName>${finalAppName}</finalName>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <plugins>
+
+            <!-- download source code in Eclipse -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <version>${maven-eclipse-plugin.version}</version>
+                <configuration>
+                    <downloadSources>true</downloadSources>
+                    <downloadJavadocs>true</downloadJavadocs>
+                </configuration>
+            </plugin>
+
+            <!-- Set a JDK compiler level -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <source>${jdk.source.version}</source>
+                    <target>${jdk.target.version}</target>
+                </configuration>
+            </plugin>
+
+            <!-- Make Uber Jar and executable Jar -->
+            <!-- Uber Jar: Big fat jar which includes all dependency -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
+                <configuration>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <!-- add Main-Class to manifest file -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>${mainclass}</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+
+    </build>
+
+    <repositories>
+
+        <!-- Maven central -->
+        <repository>
+            <id>maven.central</id>
+            <name>Maven central</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
+
+        <!-- Release version -->
+        <!--<repository>-->
+        <!--<releases />-->
+        <!--<id>maven.aksw.internal</id>-->
+        <!--<name>University Leipzig, AKSW Maven2 Repository</name>-->
+        <!--<url>http://maven.aksw.org/repository/internal/</url>-->
+        <!--</repository>-->
+
+        <!-- Snapshot version -->
+        <!-- <repository> <snapshots /> <id>maven.aksw.snapshots</id> <name>University
+            Leipzig, AKSW Maven2 Repository</name> <url>http://maven.aksw.org/repository/snapshots/</url>
+            </repository> -->
+
+    </repositories>
+
+</project>
