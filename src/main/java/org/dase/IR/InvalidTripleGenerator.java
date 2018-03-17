@@ -28,7 +28,7 @@ public class InvalidTripleGenerator {
 
 
     private int generateRandomNumber(){
-      return randomIndex.nextInt();
+      return randomIndex.nextInt(this.bound);
     }
 
     /**
@@ -39,9 +39,9 @@ public class InvalidTripleGenerator {
         int predicateIndex = generateRandomNumber();
         int objectIndex = generateRandomNumber();
 
-        Resource subject = this.originalStatements.get(subjectIndex).getSubject(); // get the subject
-        Property predicate = this.originalStatements.get(predicateIndex).getPredicate(); // get the predicate
-        RDFNode object = this.originalStatements.get(objectIndex).getObject(); // get the object
+        Resource subject = SharedDataHolder.subjects.get(subjectIndex); // get the subject
+        Property predicate =  SharedDataHolder.predicates.get(predicateIndex);  // get the predicate
+        RDFNode object = SharedDataHolder.objects.get(objectIndex); // get the object
 
         Statement stmt = ResourceFactory.createStatement(subject,predicate,object);
 
@@ -67,8 +67,8 @@ public class InvalidTripleGenerator {
      *  @formatter:on
      */
     private void generateRandomTripleByType(){
-        OntModel om = null;
-        om.getOntology("")
+        // https://dzone.com/articles/jena-listing-all-classes-and
+        // https://stackoverflow.com/questions/5639265/using-jena-api-getting-all-the-classes-from-owl-file
     }
 
     private void generateInvalidTriple(){

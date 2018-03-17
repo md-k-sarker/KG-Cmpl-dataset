@@ -65,8 +65,7 @@ public class ClassHierarchy {
     /** Show the sub-class hierarchy encoded by the given model */
     public void showHierarchy( PrintStream out, OntModel m ) {
         // create an iterator over the root classes that are not anonymous class expressions
-        Iterator<OntClass> i = m.listHierarchyRootClasses()
-                .filterDrop( new Filter<OntClass>() {
+        Iterator<OntClass> i = m.listHierarchyRootClasses().filterDrop( new Filter<OntClass>() {
                     @Override
                     public boolean accept( OntClass r ) {
                         return r.isAnon();
