@@ -1,19 +1,11 @@
 package org.dase.IR;
 
-import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.io.*;
-import java.nio.*;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Paths;
 
-import org.apache.jena.ext.com.google.common.base.Predicates;
-import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.ontology.ObjectProperty;
-import org.apache.jena.ontology.OntDocumentManager;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -23,29 +15,28 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.reasoner.Reasoner;
-import org.apache.jena.reasoner.ReasonerFactory;
-import org.apache.jena.reasoner.ReasonerRegistry;
 import org.apache.jena.reasoner.ValidityReport;
 import org.apache.jena.reasoner.ValidityReport.Report;
 import org.apache.jena.vocabulary.ReasonerVocabulary;
 
-import com.google.gson.JsonIOException;
+import org.dase.Utility.JSONMaker;
+import org.dase.Utility.Monitor;
 
 public class OntologyInferer {
 
-	static OntModel baseOntModel;
-	static OntModel infOntModel;
+    Monitor monitor;
+	private OntModel baseOntModel;
+	private OntModel infOntModel;
 	static OntModel invalidInfOntModel;
 	static KeySetView<Statement, Boolean> baseStatements;
 	static KeySetView<Statement, Boolean> inferredStatements;
-	static KeySetView<Statement, Boolean> invalidinferredStatements;
 	static String inputOntologyFile = "/Users/sarker/Mega_Cloud/Inductive Reasoning/input ontologies/owl format/lubm-univ-bench.owl";
 	static String inferredValidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/inferred ontologies/";
 	static String invalidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/invalid ontologies/";
 
-	public OntologyInferer() {
-
+	public OntologyInferer(OntModel baseOntModel, Monitor monitor) {
+        this.baseOntModel = baseOntModel;
+        this.monitor = monitor;
 	}
 
 	public static void printStatements() {
@@ -82,7 +73,22 @@ public class OntologyInferer {
 		}
 	}
 
-	public static void extractInferredStatements() throws IOException {
+
+	public KeySetView<Statement, Boolean> extractBaseStatements(){
+        baseStatements = ConcurrentHashMap.newKeySet();
+        inferredStatements = ConcurrentHashMap.newKeySet();
+
+        // list the statements in the Model
+        StmtIterator iter = this.baseOntModel.listStatements();
+        while (iter.hasNext()) {
+            Statement stmt = iter.nextStatement(); // get next statement
+            baseStatements.add(stmt);
+        }
+
+        return  baseStatements;
+    }
+
+	public KeySetView<Statement, Boolean> extractInferredStatements(KeySetView<Statement, Boolean> baseStatements) throws IOException {
 		/**
 		 * https://jena.apache.org/documentation/ontology/
 		 * 
@@ -90,15 +96,7 @@ public class OntologyInferer {
 		 * statements asserted into the base model
 		 */
 
-		baseStatements = ConcurrentHashMap.newKeySet();
-		inferredStatements = ConcurrentHashMap.newKeySet();
-
-		// list the statements in the Model
-		StmtIterator iter = baseOntModel.listStatements();
-		while (iter.hasNext()) {
-			Statement stmt = iter.nextStatement(); // get next statement
-			baseStatements.add(stmt);
-		}
+        StmtIterator iter = this.baseOntModel.listStatements();
 
 		// create model for infer
 		infOntModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RDFS_INF, baseOntModel);
@@ -120,66 +118,12 @@ public class OntologyInferer {
 		// System.out.println(e.getKey() + " " + e.getValue());
 		// });
 
-		System.out.println("base size: " + baseStatements.size());
-		System.out.println("infer size: " + inferredStatements.size());
+        monitor.displayMessage("base size: " + baseStatements.size(), true);
+        monitor.displayMessage("infer size: " + inferredStatements.size(), true);
 
+		return inferredStatements;
 	}
 
-	public static void generateInvalidTriples() {
-
-		invalidinferredStatements = ConcurrentHashMap.newKeySet();
-
-		OntModel validityCheckModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RDFS_INF,
-				baseOntModel);
-		validityCheckModel.setStrictMode(true);
-		validityCheckModel.getReasoner().setParameter(ReasonerVocabulary.PROPsetRDFSLevel,
-				ReasonerVocabulary.RDFS_FULL);
-		System.out.println("validityCheckModel size: " + validityCheckModel.size());
-
-		// test
-		ObjectProperty obp = validityCheckModel.createObjectProperty("bar");
-		Resource rsc = validityCheckModel.getResource("xsd:integer");
-		obp.addDomain(rsc);
-		Resource subRsc = validityCheckModel.getResource("instance1");
-		Resource objRsc = validityCheckModel.getResource("25.5^^xsd:decimal");
-		Statement tmpStmt = ResourceFactory.createStatement(subRsc, obp, objRsc);
-		System.out.println("tmp: " + tmpStmt);
-		validityCheckModel.add(tmpStmt);
-		System.out.println("after add validityCheckModel size: " + validityCheckModel.size());
-		ValidityReport validity = validityCheckModel.validate();
-		if (validity.isValid()) {
-			System.out.println("invalid");
-
-			Report report = validity.getReports().next();
-			System.out.println("report :" + report.getDescription());
-			Triple culprit = (Triple) report.getExtension();
-			System.out.println("culprit: " + culprit);
-		} else {
-			System.out.println("valid");
-		}
-
-		// inferredStatements.stream().forEach(s -> {
-		//
-		// Statement stmt = ResourceFactory.createStatement(s.getObject().asResource(),
-		// s.getPredicate(),
-		// s.getSubject());
-		//
-		// validityCheckModel.add(stmt);
-		// ValidityReport validity = validityCheckModel.validate();
-		// if (!validity.isValid()) {
-		// // adding this statement makes the ontology invalid
-		// invalidinferredStatements.add(stmt);
-		// System.out.println("This is invalid: "+ stmt);
-		// }else {
-		// System.out.println("this is valid: "+ stmt);
-		// }
-		// //validityCheckModel.remove(stmt);
-		// });
-
-		// invalidinferredStatements.parallelStream().forEach(s -> {
-		// System.out.println(s);
-		// });
-	}
 
 	private static void loadInvalid() {
 
@@ -213,7 +157,11 @@ public class OntologyInferer {
 
 	}
 
-	private static void saveInferred() throws IOException {
+    /**
+     * Save as owl file
+     * @throws IOException
+     */
+	public void saveInferred() throws IOException {
 		String[] names = inputOntologyFile.split("/");
 		names = names[names.length - 1].split(".owl");
 
@@ -226,6 +174,7 @@ public class OntologyInferer {
 		infOntModel.write(bfw);
 		bfw.close();
 	}
+
 
 	public static void main(String[] args) throws IOException {
 
@@ -250,7 +199,7 @@ public class OntologyInferer {
 		JSONMaker jsonMaker = new JSONMaker(baseOntModel, infOntModel, invalidInfOntModel);
 		jsonMaker.makeJSON();
 
-		// generateInvalidTriples();
+		// generateNoiseTriples();
 	}
 
 }

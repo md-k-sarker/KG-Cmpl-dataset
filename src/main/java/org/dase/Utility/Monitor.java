@@ -1,15 +1,19 @@
-package org.dase.IR;
+package org.dase.Utility;
 
+import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
 public class Monitor {
-	static long startTime;
+	private long startTime;
+
+	private final PrintStream out;
 
 	// stop initializing
-	private Monitor() {
+	public Monitor(PrintStream _printStream) {
+		this.out = _printStream;
 	}
 
 	/*
@@ -25,44 +29,51 @@ public class Monitor {
 	// stop("Error occurred: Safe Exiting...");
 	// }
 
-	public static void displayMessage(String message) {
+	public void displayMessage(String message, boolean write) {
 		System.out.println(message);
+		if (write) {
+			out.println(message);
+		}
 	}
 
-	public static void error(String message) {
+	public void error(String message) {
 		System.err.println(message);
 	}
 
-	public static void start(String message) {
+	public void start(String message, boolean write) {
 		if (message.trim() != "") {
-			displayMessage(message);
+			displayMessage(message, write);
 		}
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		Date date = new Date();
 		startTime = System.currentTimeMillis();
-		displayMessage("Start Time: " + dateFormat.format(date));
+		displayMessage("Start Time: " + dateFormat.format(date), write);
 	}
 
-	public static void displayMessageWithTime(String message) {
+	public void displayMessageWithTime(String message, boolean write) {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		Date date = new Date();
 		Long end = System.currentTimeMillis();
 		if (message.trim() != "") {
-			displayMessage(message);
+			displayMessage(message, write);
 		}
-		displayMessage(" Time Now:" + dateFormat.format(date));
-		displayMessage("Duration from startTime:" + (end - startTime) / 1000 + " sec");
+		displayMessage(" Time Now:" + dateFormat.format(date), write);
+		displayMessage("Duration from startTime:" + (end - startTime) / 1000 + " sec", write);
 	}
 
-	public static void stop(String message) {
+	public void stop(String message, boolean write) {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		Date date = new Date();
 		Long end = System.currentTimeMillis();
 		if (message.trim() != "") {
-			displayMessage(message);
+			displayMessage(message, write);
 		}
-		displayMessage("End Time:" + dateFormat.format(date));
-		displayMessage("Duration:" + (end - startTime) / 1000 + " sec");
+		displayMessage("End Time:" + dateFormat.format(date), write);
+		displayMessage("Duration:" + (end - startTime) / 1000 + " sec", write);
+	}
+
+	public void stopSystem(String message, boolean write) {
+		stop(message, write);
 		System.exit(1);
 	}
 }
