@@ -8,12 +8,15 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
  */
 public class SharedDataHolder {
+
     private SharedDataHolder() {
 
     }
@@ -29,6 +32,7 @@ public class SharedDataHolder {
     public static ArrayList<Resource> subjects;
     public static ArrayList<Property> predicates;
     public static ArrayList<RDFNode> objects;
+    public static Map<String, String> prefixMap;
 
     static {
         baseStatements = ConcurrentHashMap.newKeySet();
@@ -42,6 +46,7 @@ public class SharedDataHolder {
         subjects = new ArrayList<>();
         predicates = new ArrayList<>();
         objects = new ArrayList<>();
+        prefixMap = new HashMap<>();
     }
 
     public static String rdfTypeAsString = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";

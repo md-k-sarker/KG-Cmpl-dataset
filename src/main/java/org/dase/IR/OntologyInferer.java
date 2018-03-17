@@ -30,9 +30,9 @@ public class OntologyInferer {
 	static OntModel invalidInfOntModel;
 	static KeySetView<Statement, Boolean> baseStatements;
 	static KeySetView<Statement, Boolean> inferredStatements;
-	static String inputOntologyFile = "/Users/sarker/Mega_Cloud/Inductive Reasoning/input ontologies/owl format/lubm-univ-bench.owl";
-	static String inferredValidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/inferred ontologies/";
-	static String invalidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/invalid ontologies/";
+//	static String inputOntologyFile = "/Users/sarker/Mega_Cloud/Inductive Reasoning/input ontologies/owl format/lubm-univ-bench.owl";
+//	static String inferredValidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/inferred ontologies/";
+//	static String invalidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/invalid ontologies/";
 
 	public OntologyInferer(OntModel baseOntModel, Monitor monitor) {
         this.baseOntModel = baseOntModel;
@@ -127,33 +127,33 @@ public class OntologyInferer {
 
 	private static void loadInvalid() {
 
-		invalidInfOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-		invalidInfOntModel.setStrictMode(true);
-
-		invalidInfOntModel.read("file:" + invalidOntologyPath + "lubm_invalid.owl");
+//		invalidInfOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+//		invalidInfOntModel.setStrictMode(true);
+//
+//		invalidInfOntModel.read("file:" + invalidOntologyPath + "lubm_invalid.owl");
 
 	}
 
 	private static void loadInput() {
 
-		baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-		baseOntModel.setStrictMode(true);
-
-		baseOntModel.read("file:" + inputOntologyFile);
-		System.out.println("Profile: " + baseOntModel.getProfile());
-		System.out.println("Size of node/statement:" + baseOntModel.getGraph().size());
+//		baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+//		baseOntModel.setStrictMode(true);
+//
+//		baseOntModel.read("file:" + inputOntologyFile);
+//		System.out.println("Profile: " + baseOntModel.getProfile());
+//		System.out.println("Size of node/statement:" + baseOntModel.getGraph().size());
 
 	}
 
 	private static void loadInferred() {
 
-		infOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-		infOntModel.setStrictMode(true);
-
-		String fileName = inferredValidOntologyPath + "Inferred_lubm-univ-bench.owl";
-		System.out.println("fileName: " + fileName);
-
-		infOntModel.read("file:" + fileName);
+//		infOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+//		infOntModel.setStrictMode(true);
+//
+//		String fileName = inferredValidOntologyPath + "Inferred_lubm-univ-bench.owl";
+//		System.out.println("fileName: " + fileName);
+//
+//		infOntModel.read("file:" + fileName);
 
 	}
 
@@ -162,20 +162,24 @@ public class OntologyInferer {
      * @throws IOException
      */
 	public void saveInferred() throws IOException {
-		String[] names = inputOntologyFile.split("/");
-		names = names[names.length - 1].split(".owl");
-
-		infOntModel.removeAll();
-		BufferedWriter bfw = new BufferedWriter(
-				new FileWriter(inferredValidOntologyPath + "Inferred_" + names[0] + ".owl"));
-		inferredStatements.stream().forEach(stmt -> {
-			infOntModel.add(stmt);
-		});
-		infOntModel.write(bfw);
-		bfw.close();
+//		String[] names = inputOntologyFile.split("/");
+//		names = names[names.length - 1].split(".owl");
+//
+//		infOntModel.removeAll();
+//		BufferedWriter bfw = new BufferedWriter(
+//				new FileWriter(inferredValidOntologyPath + "Inferred_" + names[0] + ".owl"));
+//		inferredStatements.stream().forEach(stmt -> {
+//			infOntModel.add(stmt);
+//		});
+//		infOntModel.write(bfw);
+//		bfw.close();
 	}
 
-
+    /**
+     * For testing purpose
+     * @param args
+     * @throws IOException
+     */
 	public static void main(String[] args) throws IOException {
 
 		/**
@@ -196,8 +200,8 @@ public class OntologyInferer {
 		 */
 		loadInvalid();
 
-		JSONMaker jsonMaker = new JSONMaker(baseOntModel, infOntModel, invalidInfOntModel);
-		jsonMaker.makeJSON();
+//		JSONMaker jsonMaker = new JSONMaker(baseOntModel, infOntModel, invalidInfOntModel);
+//		jsonMaker.makeJSON();
 
 		// generateNoiseTriples();
 	}

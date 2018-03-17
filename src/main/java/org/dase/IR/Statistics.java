@@ -70,6 +70,8 @@ public class Statistics {
         monitor.displayMessage("Total subject: "+ SharedDataHolder.subjects.size(), true);
         monitor.displayMessage("Total predicates: "+ SharedDataHolder.predicates.size(), true);
         monitor.displayMessage("Total objects: "+ SharedDataHolder.objects.size(), true);
+
+        SharedDataHolder.prefixMap =  this.baseOntModel.getNsPrefixMap();
     }
 
 

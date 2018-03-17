@@ -74,6 +74,7 @@ public class Monitor {
 
 	public void stopSystem(String message, boolean write) {
 		stop(message, write);
+		this.out.close();
 		System.exit(1);
 	}
 }

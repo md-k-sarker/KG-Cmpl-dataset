@@ -15,6 +15,7 @@ import org.dase.IR.OntologyInferer;
 import org.dase.IR.SharedDataHolder;
 import org.dase.IR.Statistics;
 import org.dase.Utility.ConfigParams;
+import org.dase.Utility.JSONMaker;
 import org.dase.Utility.Monitor;
 import org.dase.Utility.Util;
 
@@ -24,14 +25,11 @@ public class Main {
     private static Monitor programMonitor;
 
     static OntModel baseOntModel;
-    static OntModel infOntModel;
-    static OntModel invalidInfOntModel;
+    //    static OntModel infOntModel;
+//    static OntModel invalidInfOntModel;
     static KeySetView<Statement, Boolean> baseStatements;
     static KeySetView<Statement, Boolean> inferredStatements;
-    static KeySetView<Statement, Boolean> invalidinferredStatements;
-    static String inputOntologyFile = "/home/sarker/MegaCloud/Inductive Reasoning/input ontologies/owl format/Input Knowledge Graph/lubm-univ-bench.owl";
-    static String inferredValidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/inferred ontologies/";
-    static String invalidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/invalid ontologies/";
+//    static KeySetView<Statement, Boolean> invalidinferredStatements;
 
 
     private static OntModel loadInput(String inputOntologyFile, Monitor monitor) {
@@ -40,9 +38,9 @@ public class Main {
         baseOntModel.setStrictMode(true);
 
         baseOntModel.read("file:" + inputOntologyFile);
-        monitor.displayMessage("Ontology: "+ inputOntologyFile + " loaded", true );
-        monitor.displayMessage("Profile: " + baseOntModel.getProfile(),true);
-        monitor.displayMessage("Size of node/statement:" + baseOntModel.getGraph().size(),true);
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
+        monitor.displayMessage("Profile: " + baseOntModel.getProfile(), true);
+        monitor.displayMessage("Size of node/statement:" + baseOntModel.getGraph().size(), true);
 
         return baseOntModel;
 
@@ -53,19 +51,19 @@ public class Main {
     }
 
     private static void doOps(Monitor monitor) {
-        baseOntModel = loadInput(null, monitor);
+        baseOntModel = loadInput(ConfigParams.inputOntoPath, monitor);
 
         OntologyInferer inferer = new OntologyInferer(baseOntModel, monitor);
-        KeySetView<Statement, Boolean> baseStatements = inferer.extractBaseStatements();
-        monitor.displayMessage("Infering statements by rdfs reasoner...", true);
+        baseStatements = inferer.extractBaseStatements();
+        monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
         try {
-            KeySetView<Statement, Boolean> inferredStatements = inferer.extractInferredStatements(baseStatements);
+            inferredStatements = inferer.extractInferredStatements(baseStatements);
         } catch (IOException e) {
             monitor.stopSystem(Util.getStackTraceAsString(e), true);
         }
-        monitor.displayMessage("Infering statements by rdfs reasoner finished.", true);
+        monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
 
-        Statistics stat = new Statistics(monitor, baseOntModel,baseStatements,inferredStatements);
+        Statistics stat = new Statistics(monitor, baseOntModel, baseStatements, inferredStatements);
         monitor.displayMessage("Filling stattistics...", true);
         stat.preFillStatistics();
         monitor.displayMessage("Filling stattistics finished", true);
@@ -74,9 +72,18 @@ public class Main {
         invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
 
         monitor.displayMessage("Generating invalid triples....", true);
-        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor,ConfigParams.randomSeed, invalidTriplesNeeded);
+        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
         invalidTripleGenerator.generateInvalidTriples();
         monitor.displayMessage("Generating invalid triples finished", true);
+
+
+        JSONMaker jsonMaker = new JSONMaker(monitor, baseOntModel);
+        try{
+            jsonMaker.makeJSON(ConfigParams.outputJsonPath);
+        }
+        catch (IOException e){
+            monitor.stopSystem(Util.getStackTraceAsString(e), true);
+        }
     }
 
     public static void main(String[] args) {
@@ -96,9 +103,8 @@ public class Main {
             } finally {
                 programMonitor.stop("Program finished", true);
                 printStream.close();
-            }
 
-            System.out.println("Hellow World");
+            }
         } catch (Exception ex) {
 
         }

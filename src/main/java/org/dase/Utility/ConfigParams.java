@@ -13,15 +13,10 @@ public final class ConfigParams {
     private static InputStream input;
 
     // properties needed
-    public static String confFilePath;
-    public static String ontoPath;
     public static String logPath;
-    public static String dllearnerResultPath;
-    public static String miniDlLearnerResultPath;
-    public static String posIndiPath;
-    public static String negIndiPath;
+    public static String inputOntoPath;
+    public static String outputJsonPath;
     public static String namespace;
-    public static Double tolerance;
     public static int invalidTriplesNeeded;
     public static int randomSeed;
     public static boolean debug;
@@ -48,17 +43,17 @@ public final class ConfigParams {
             System.out.println(k + ": " + v);
         });
 
-        confFilePath = prop.getProperty("path.confFilePath");
-        ontoPath = prop.getProperty("path.inputOntology");
-        String[] inpPaths = ontoPath.split(File.separator);
+        inputOntoPath = prop.getProperty("file.inputOntology");
+
+        String[] inpPaths = inputOntoPath.split(File.separator);
         String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
         logPath = prop.getProperty("path.outputLogPath") +"_log" + name;
-        dllearnerResultPath = prop.getProperty("path.dllearnerResultPath") +"_result_by_dllearnerResultPath_" + name;
-        miniDlLearnerResultPath = prop.getProperty("path.miniDlLearnerResultPath") +"_result_by_miniDlLearnerResultPath_" + name;
-        posIndiPath = prop.getProperty("path.posImages");
-        negIndiPath = prop.getProperty("path.negImages");
+
+        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+        outputJsonPath = prop.getProperty("path.outputJson") + name;
+
         namespace = prop.getProperty("namespace");
-        tolerance = Double.valueOf(prop.getProperty("tolerance"));
+
         invalidTriplesNeeded = Integer.valueOf(prop.getProperty("invalidTriplesNeeded"));
         randomSeed = Integer.valueOf(prop.getProperty("randomSeed"));
         debug = Boolean.parseBoolean(prop.getProperty("debug"));

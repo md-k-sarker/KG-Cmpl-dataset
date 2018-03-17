@@ -2,45 +2,44 @@ package org.dase.Utility;
 
 //import static org.hamcrest.CoreMatchers.instanceOf;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap.KeySetView;
-
+import com.google.gson.*;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.ontology.Ontology;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.PrintUtil;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
-import org.dase.IR.SharedDataHolder;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
-public class JSONMaker {
+public class JSONMaker_Backup {
 
+	private static String jsonOutputFile = "/Users/sarker/Mega_Cloud/Inductive Reasoning/jsons/raw test.json";
+	private static String jsonOutputFile1 = "/Users/sarker/Mega_Cloud/Inductive Reasoning/jsons/lubmafterprefix.json";
+	private static String jsonOutputFile2 = "/Users/sarker/Mega_Cloud/Inductive Reasoning/jsons/lubmafterinput.json";
+	private static String jsonOutputFile3 = "/Users/sarker/Mega_Cloud/Inductive Reasoning/jsons/lubmafterinfer.json";
+	private static String jsonOutputFile4 = "/Users/sarker/Mega_Cloud/Inductive Reasoning/jsons/lubmafterinvalid.json";
 
-	private Monitor monitor;
 	private static JsonObject jsonObject;
 	OntModel baseOntModel;
+	OntModel infOntModel;
+	OntModel invalidInfOntModel;
 	String graphName = "";
 	private Map<String, String> prefixMap;
 	private Map<String, String> reversePrefixMap;
 
 	Gson gson;
 
-	public JSONMaker(Monitor monitor, OntModel baseOntModel) {
-	    this.monitor = monitor;
-        this.baseOntModel = baseOntModel;
+	public JSONMaker_Backup(OntModel baseOntModel, OntModel infOntModel, OntModel invalidInfOntModel) {
 		gson = new Gson();
 		jsonObject = new JsonObject();
+		this.baseOntModel = baseOntModel;
+		this.infOntModel = infOntModel;
+		this.invalidInfOntModel = invalidInfOntModel;
+		// prefixMap = new HashMap<>();
 	}
 
 	private String getNormalizedStatement(Statement stmt) {
@@ -84,7 +83,7 @@ public class JSONMaker {
 		return statement;
 	}
 
-	public void makeJSON(String writeTo) throws JsonIOException, IOException {
+	public void makeJSON() throws JsonIOException, IOException {
 		
 		reversePrefixMap = new HashMap<>();
 		PrintUtil pUtil = new PrintUtil();
@@ -97,10 +96,10 @@ public class JSONMaker {
 			graphName = "empty";
 		}
 		jsonObject.addProperty("OntologyName", graphName);
-		this.monitor.displayMessage("josn after adding name: " + jsonObject, false);
+		System.out.println("josn after adding name: " + jsonObject);
 
 		// add prefixes
-		prefixMap = SharedDataHolder.prefixMap;
+		prefixMap = baseOntModel.getNsPrefixMap();
 		prefixMap.entrySet().forEach(e->{
 			reversePrefixMap.put(e.getValue(), e.getKey());
 		});
@@ -108,55 +107,60 @@ public class JSONMaker {
 		pUtil.registerPrefixMap(prefixMap);
 		
 		String prefix = gson.toJson(prefixMap);
-        this.monitor.displayMessage("prefix: " + prefix,false);
+		System.out.println("prefix: " + prefix);
 		jsonObject.addProperty("Prefixes", prefix);
-        this.monitor.displayMessage("josn after adding prefix: " + jsonObject, false);
-		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
+		System.out.println("josn after adding prefix: " + jsonObject);
+		gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
 		
 
 		// add input-axioms of the ontology
 		inputJA = new JsonArray();
-		SharedDataHolder.baseStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            //String statement = getNormalizedStatement(stmt);
-            //System.out.println("simplified: "+ pUtil.print(stmt));
-            inputJA.add(statement);
-        });
-
-        this.monitor.displayMessage("OriginalAxioms: " + inputJA,false);
+		StmtIterator iter = baseOntModel.listStatements();
+		while (iter.hasNext()) {
+			Statement stmt = iter.nextStatement(); // get next statement
+			String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+			//String statement = getNormalizedStatement(stmt);
+			//System.out.println("simplified: "+ pUtil.print(stmt));
+			inputJA.add(statement);
+		}
+		System.out.println("OriginalAxioms: " + inputJA);
 		jsonObject.add("OriginalAxioms", inputJA);
-		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile2));
+		gson.toJson(jsonObject, new FileWriter(jsonOutputFile2));
 
 		
 		// add inferred-axioms of the ontology
 		inferJA = new JsonArray();
-		SharedDataHolder.inferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            inferJA.add(statement);
-        });
-
-        this.monitor.displayMessage("infAxioms: " + inferJA,false);
+		iter = infOntModel.listStatements();
+		while (iter.hasNext()) {
+			Statement stmt = iter.nextStatement(); // get next statement
+			String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+			inferJA.add(statement);
+		}
+		System.out.println("infAxioms: " + inferJA);
 		jsonObject.add("InferredAxioms", inferJA);
-		// gson.toJson(jsonObject, new FileWriter(jsonOutputFile3));
+		gson.toJson(jsonObject, new FileWriter(jsonOutputFile3));
 
 		// add noise axioms
 		invalidJA = new JsonArray();
-		SharedDataHolder.invalidinferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            invalidJA.add(statement);
-        });
-
-
-        this.monitor.displayMessage("invalidAxioms: " + invalidJA,false);
+		iter = invalidInfOntModel.listStatements();
+		while (iter.hasNext()) {
+			Statement stmt = iter.nextStatement(); // get next statement
+			String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+			invalidJA.add(statement);
+		}
+		/**
+		 * Please close the bufferredwriter/filewriter
+		 */
+		System.out.println("invalidAxioms: " + invalidJA);
 		jsonObject.add("InvalidAxioms", invalidJA);
+		gson.toJson(jsonObject, new FileWriter(jsonOutputFile4));
 
-        /**
-         * Please close the bufferredwriter/filewriter
-         */
-        BufferedWriter bw = new BufferedWriter(new FileWriter(writeTo));
-		gson.toJson(jsonObject, bw);
-		bw.close();
 
+		String jsonString = gson.toJson(jsonObject);
+		System.out.println("full json: "+ jsonString);
+		FileWriter writer = new FileWriter(jsonOutputFile);
+		writer.write(jsonString);
+		writer.close();
 	}
 
     /**
