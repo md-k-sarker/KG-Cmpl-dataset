@@ -6,6 +6,7 @@ import org.apache.jena.rdf.model.*;
 import org.apache.jena.reasoner.ValidityReport;
 import org.apache.jena.vocabulary.ReasonerVocabulary;
 import org.dase.Utility.Monitor;
+import org.dase.Utility.Util;
 
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,8 +33,8 @@ public class InvalidTripleGenerator {
     }
 
 
-    private int generateRandomNumber(int bount) {
-        return randomIndex.nextInt(bount);
+    private int generateRandomNumber(int bound) {
+        return randomIndex.nextInt(bound);
     }
 
     /**
@@ -66,12 +67,20 @@ public class InvalidTripleGenerator {
      * @formatter:on
      */
     private Statement generateTripleByChangingIndividual() {
-        int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
-        Statement stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
+
+        Statement stmt = null;
         Statement newStmt = null;
 
         // change individual
-        Individual indv = (Individual) stmt.getSubject();
+        Individual indv = null;
+        while(null == indv) {
+            int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
+            stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
+            // not all subject are individuals
+            if(stmt.getSubject().canAs(Individual.class)) {
+                indv = (Individual) stmt.getSubject().as(Individual.class);
+            }
+        }
         Individual chosenIndv = null;
         while (chosenIndv == null) {
             int indivIndex = generateRandomNumber(SharedDataHolder.individuals.size());
@@ -163,21 +172,24 @@ public class InvalidTripleGenerator {
 
                 } else if (tripleType == 1) {
                     // generate by changing individual
-                    newStmt = generateTripleByChangingIndividual();
+                    /**
+                     * Extracting individuals is taking too much time
+                     */
+                    newStmt = generateRandomTripleByIndex();
                 } else {
                     // generate by changing class
                     newStmt = generateTripleByChangingClass();
                 }
-
+                monitor.writeMessage(" stmt type: "+ tripleType);
                 if (!isExist(newStmt)) {
                     SharedDataHolder.invalidinferredStatements.add(newStmt);
                     this.generatedTripleCounter++;
                 }
-                monitor.displayMessage(newStmt.toString(), true);
-                monitor.displayMessage("Generated " + this.generatedTripleCounter + " triple. ", false);
+                monitor.writeMessage("Gen. no. "+this.generatedTripleCounter+ " invalid triple: "+ newStmt.toString());
             }
             return true;
         } catch (Exception ex) {
+            monitor.displayMessage(Util.getStackTraceAsString(ex), true);
             return false;
         }
     }

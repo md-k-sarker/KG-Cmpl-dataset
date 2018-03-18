@@ -50,6 +50,11 @@ public class Monitor {
 		displayMessage("Start Time: " + dateFormat.format(date), write);
 	}
 
+	public void writeMessage(String message){
+        out.println(message);
+        out.flush();
+    }
+
 	public void displayMessageWithTime(String message, boolean write) {
 		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 		Date date = new Date();

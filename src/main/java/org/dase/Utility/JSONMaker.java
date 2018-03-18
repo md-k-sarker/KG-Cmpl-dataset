@@ -84,7 +84,7 @@ public class JSONMaker {
 		return statement;
 	}
 
-	public void makeJSON(String writeTo) throws JsonIOException, IOException {
+	public void makeJSON(String ontoName, String writeTo) throws JsonIOException, IOException {
 		
 		reversePrefixMap = new HashMap<>();
 		PrintUtil pUtil = new PrintUtil();
@@ -92,25 +92,28 @@ public class JSONMaker {
 		
 		
 		// add ontology name
-		graphName = baseOntModel.getNsPrefixURI("");
+		graphName = ontoName;
 		if (null == graphName) {
 			graphName = "empty";
 		}
 		jsonObject.addProperty("OntologyName", graphName);
-		this.monitor.displayMessage("josn after adding name: " + jsonObject, false);
+		this.monitor.displayMessage("josn size after adding name: " + jsonObject.size(), false);
 
 		// add prefixes
 		prefixMap = SharedDataHolder.prefixMap;
 		prefixMap.entrySet().forEach(e->{
 			reversePrefixMap.put(e.getValue(), e.getKey());
 		});
-		prefixMap.put("default",prefixMap.get(""));
+		String dfPrefix = prefixMap.get("");
+		if(null ==dfPrefix)
+		    dfPrefix = "";
+		prefixMap.put("default",dfPrefix);
 		pUtil.registerPrefixMap(prefixMap);
 		
 		String prefix = gson.toJson(prefixMap);
         this.monitor.displayMessage("prefix: " + prefix,false);
 		jsonObject.addProperty("Prefixes", prefix);
-        this.monitor.displayMessage("josn after adding prefix: " + jsonObject, false);
+        this.monitor.displayMessage("josn size after adding prefix: " + jsonObject.size(), false);
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
 		
 
@@ -118,15 +121,21 @@ public class JSONMaker {
 		inputJA = new JsonArray();
 		SharedDataHolder.baseStatements.forEach(stmt->{
             String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            //String statement = getNormalizedStatement(stmt);
-            //System.out.println("simplified: "+ pUtil.print(stmt));
             inputJA.add(statement);
         });
 
-        this.monitor.displayMessage("OriginalAxioms: " + inputJA,false);
+        this.monitor.displayMessage("OriginalAxioms json size: " + inputJA.size(),false);
 		jsonObject.add("OriginalAxioms", inputJA);
-		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile2));
 
+        // add noise axioms
+        invalidJA = new JsonArray();
+        SharedDataHolder.invalidinferredStatements.forEach(stmt->{
+            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+            invalidJA.add(statement);
+        });
+
+        this.monitor.displayMessage("InvalidInferredAxioms josn size: " + invalidJA.size(),false);
+        jsonObject.add("InvalidAxioms", invalidJA);
 		
 		// add inferred-axioms of the ontology
 		inferJA = new JsonArray();
@@ -135,20 +144,9 @@ public class JSONMaker {
             inferJA.add(statement);
         });
 
-        this.monitor.displayMessage("infAxioms: " + inferJA,false);
+        this.monitor.displayMessage("InfAxioms json size: " + inferJA.size(),false);
 		jsonObject.add("InferredAxioms", inferJA);
-		// gson.toJson(jsonObject, new FileWriter(jsonOutputFile3));
 
-		// add noise axioms
-		invalidJA = new JsonArray();
-		SharedDataHolder.invalidinferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            invalidJA.add(statement);
-        });
-
-
-        this.monitor.displayMessage("invalidAxioms: " + invalidJA,false);
-		jsonObject.add("InvalidAxioms", invalidJA);
 
         /**
          * Please close the bufferredwriter/filewriter

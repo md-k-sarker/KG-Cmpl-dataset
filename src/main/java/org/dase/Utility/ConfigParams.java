@@ -17,7 +17,8 @@ public final class ConfigParams {
     public static String inputOntoPath;
     public static String outputJsonPath;
     public static String namespace;
-    public static int invalidTriplesNeeded;
+    public static int noOfBaseTriples;
+    public static int noOfinvalidTriplesNeeded;
     public static int randomSeed;
     public static boolean debug;
 
@@ -45,16 +46,17 @@ public final class ConfigParams {
 
         inputOntoPath = prop.getProperty("file.inputOntology");
 
-        String[] inpPaths = inputOntoPath.split(File.separator);
-        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
-        logPath = prop.getProperty("path.outputLogPath") +"_log" + name;
-
-        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
-        outputJsonPath = prop.getProperty("path.outputJson") + name;
+//        String[] inpPaths = inputOntoPath.split(File.separator);
+//        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+        logPath = prop.getProperty("path.outputLogPath") +"_log.txt" ;
+//
+//        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+//        outputJsonPath = prop.getProperty("path.outputJson") + name;
 
         namespace = prop.getProperty("namespace");
 
-        invalidTriplesNeeded = Integer.valueOf(prop.getProperty("invalidTriplesNeeded"));
+        noOfBaseTriples = Integer.valueOf(prop.getProperty("noOfBaseTriples"));
+        noOfinvalidTriplesNeeded = Integer.valueOf(prop.getProperty("noOfinvalidTriplesNeeded"));
         randomSeed = Integer.valueOf(prop.getProperty("randomSeed"));
         debug = Boolean.parseBoolean(prop.getProperty("debug"));
 

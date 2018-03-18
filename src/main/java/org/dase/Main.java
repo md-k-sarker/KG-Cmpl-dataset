@@ -1,15 +1,16 @@
 package org.dase;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.util.iterator.ExtendedIterator;
 import org.dase.IR.InvalidTripleGenerator;
 import org.dase.IR.OntologyInferer;
 import org.dase.IR.SharedDataHolder;
@@ -25,6 +26,8 @@ public class Main {
     private static Monitor programMonitor;
 
     static OntModel baseOntModel;
+    static OntModel restrictedBaseOntModel;
+    static OntModel baseOntModelWithInference;
     //    static OntModel infOntModel;
 //    static OntModel invalidInfOntModel;
     static KeySetView<Statement, Boolean> baseStatements;
@@ -38,22 +41,48 @@ public class Main {
         baseOntModel.setStrictMode(true);
 
         baseOntModel.read("file:" + inputOntologyFile);
+
+        SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
+        SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
+
+        /**
+         * Take around 700 statements only
+         */
+        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        restrictedBaseOntModel.setStrictMode(true);
+
+        ExtendedIterator iterator = baseOntModel.listStatements();
+        int counter = 0;
+        while (counter < ConfigParams.noOfBaseTriples) {
+            if (iterator.hasNext()) {
+                restrictedBaseOntModel.add((Statement) iterator.next());
+                counter++;
+            } else {
+                break;
+            }
+        }
+
         monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
-        monitor.displayMessage("Profile: " + baseOntModel.getProfile(), true);
-        monitor.displayMessage("Size of node/statement:" + baseOntModel.getGraph().size(), true);
+        monitor.displayMessage("Profile: " + restrictedBaseOntModel.getProfile(), true);
+        monitor.displayMessage("Total no. of node/statements: " + restrictedBaseOntModel.getGraph().size(), true);
 
-        return baseOntModel;
-
-//        baseOntModel.listStatements().forEachRemaining(stmt -> {
-//            System.out.println("predicate: " + stmt.getPredicate().toString());
-//        });
+        return restrictedBaseOntModel;
 
     }
 
-    private static void doOps(Monitor monitor) {
-        baseOntModel = loadInput(ConfigParams.inputOntoPath, monitor);
+    private static void doOps(Monitor monitor, String inputOntFullPath) {
 
-        OntologyInferer inferer = new OntologyInferer(baseOntModel, monitor);
+        String[] inpPaths = inputOntFullPath.split(File.separator);
+        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+        String logPath = ConfigParams.inputOntoPath +"_log" + name;
+
+        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+        String outputJsonPath = ConfigParams.inputOntoPath + name;
+
+        restrictedBaseOntModel = loadInput(inputOntFullPath, monitor);
+        baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
+
+        OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
         baseStatements = inferer.extractBaseStatements();
         monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
         try {
@@ -63,12 +92,13 @@ public class Main {
         }
         monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
 
-        Statistics stat = new Statistics(monitor, baseOntModel, baseStatements, inferredStatements);
+
+        Statistics stat = new Statistics(monitor, restrictedBaseOntModel, baseStatements, baseOntModelWithInference, inferredStatements);
         monitor.displayMessage("Filling stattistics...", true);
         stat.preFillStatistics();
         monitor.displayMessage("Filling stattistics finished", true);
 
-        int invalidTriplesNeeded = Math.min(ConfigParams.invalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
+        int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
         invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
 
         monitor.displayMessage("Generating invalid triples....", true);
@@ -77,11 +107,10 @@ public class Main {
         monitor.displayMessage("Generating invalid triples finished", true);
 
 
-        JSONMaker jsonMaker = new JSONMaker(monitor, baseOntModel);
-        try{
-            jsonMaker.makeJSON(ConfigParams.outputJsonPath);
-        }
-        catch (IOException e){
+        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
+        try {
+            jsonMaker.makeJSON(SharedDataHolder.ontName, outputJsonPath);
+        } catch (IOException e) {
             monitor.stopSystem(Util.getStackTraceAsString(e), true);
         }
     }
@@ -97,15 +126,22 @@ public class Main {
             programMonitor = new Monitor(printStream);
             programMonitor.start("Program started", true);
             try {
-                doOps(programMonitor);
+                Files.walk(Paths.get(ConfigParams.inputOntoPath)).filter(f -> f.toFile().isFile()).
+                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
+                programMonitor.start("\n\n\n", true);
+                 programMonitor.start("Program running for "+f.toAbsolutePath().toString(),  true);
+                doOps(programMonitor, ConfigParams.inputOntoPath);
+                 });
             } catch (Exception ex) {
-                programMonitor.stop("Program crashed", true);
-            } finally {
-                programMonitor.stop("Program finished", true);
-                printStream.close();
-
+                programMonitor.displayMessage("Program crashed", true);
+                programMonitor.displayMessage(Util.getStackTraceAsString(ex), true);
             }
         } catch (Exception ex) {
+            programMonitor.displayMessage("Program crashed", true);
+            programMonitor.displayMessage(Util.getStackTraceAsString(ex), true);
+        } finally {
+            programMonitor.stop("Program finished", true);
+            printStream.close();
 
         }
     }
