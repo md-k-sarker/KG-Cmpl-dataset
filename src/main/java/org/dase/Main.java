@@ -3,6 +3,7 @@ package org.dase;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
@@ -34,6 +35,9 @@ public class Main {
     static KeySetView<Statement, Boolean> inferredStatements;
 //    static KeySetView<Statement, Boolean> invalidinferredStatements;
 
+    static boolean hasMore = false;
+    static int SplitIndex = 0;
+
 
     private static OntModel loadInput(String inputOntologyFile, Monitor monitor) {
 
@@ -51,7 +55,9 @@ public class Main {
         restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
         restrictedBaseOntModel.setStrictMode(true);
 
+        monitor.displayMessage("No of axioms: " + baseOntModel.listStatements().toList().size(), true);
         ExtendedIterator iterator = baseOntModel.listStatements();
+
         int counter = 0;
         while (counter < ConfigParams.noOfBaseTriples) {
             if (iterator.hasNext()) {
@@ -70,49 +76,69 @@ public class Main {
 
     }
 
+    private static OntModel[] splitInputOntology() {
+        int totalStatements = baseOntModel.listStatements().toList().size();
+        ArrayList<Statement> statements = new ArrayList<>();
+        statements.addAll(baseOntModel.listStatements().toList());
+
+        ArrayList<OntModel> ontModels = new ArrayList<>();
+
+        int usedStatements = 0;
+
+        while (usedStatements < totalStatements) {
+
+            OntModel ontModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+            ontModel.setStrictMode(true);
+            int minIndexForLastItem = Math.min(totalStatements - usedStatements, ConfigParams.noOfBaseTriples);
+            ontModel.add(statements.subList(usedStatements, usedStatements + minIndexForLastItem));
+            usedStatements += minIndexForLastItem;
+        }
+
+        return null;
+    }
+
     private static void doOps(Monitor monitor, String inputOntFullPath) {
 
-        String[] inpPaths = inputOntFullPath.split(File.separator);
-        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
-        String logPath = ConfigParams.inputOntoPath +"_log" + name;
-
-        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
-        String outputJsonPath = ConfigParams.inputOntoPath + name;
+        //      String[] inpPaths = inputOntFullPath.split(File.separator);
+        //   String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+        // name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+        //String outputJsonPath = ConfigParams.inputOntoPath + name;
+        // monitor.displayMessage("Json writing in: "+outputJsonPath, true);
 
         restrictedBaseOntModel = loadInput(inputOntFullPath, monitor);
-        baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
-
-        OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
-        baseStatements = inferer.extractBaseStatements();
-        monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
-        try {
-            inferredStatements = inferer.extractInferredStatements(baseStatements);
-        } catch (IOException e) {
-            monitor.stopSystem(Util.getStackTraceAsString(e), true);
-        }
-        monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
-
-
-        Statistics stat = new Statistics(monitor, restrictedBaseOntModel, baseStatements, baseOntModelWithInference, inferredStatements);
-        monitor.displayMessage("Filling stattistics...", true);
-        stat.preFillStatistics();
-        monitor.displayMessage("Filling stattistics finished", true);
-
-        int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
-        invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
-
-        monitor.displayMessage("Generating invalid triples....", true);
-        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
-        invalidTripleGenerator.generateInvalidTriples();
-        monitor.displayMessage("Generating invalid triples finished", true);
-
-
-        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
-        try {
-            jsonMaker.makeJSON(SharedDataHolder.ontName, outputJsonPath);
-        } catch (IOException e) {
-            monitor.stopSystem(Util.getStackTraceAsString(e), true);
-        }
+//        baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
+//
+//        OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
+//        baseStatements = inferer.extractBaseStatements();
+//        monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
+//        try {
+//            inferredStatements = inferer.extractInferredStatements(baseStatements);
+//        } catch (IOException e) {
+//            monitor.stopSystem(Util.getStackTraceAsString(e), true);
+//        }
+//        monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
+//
+//
+//        Statistics stat = new Statistics(monitor, restrictedBaseOntModel, baseStatements, baseOntModelWithInference, inferredStatements);
+//        monitor.displayMessage("Filling stattistics...", true);
+//        stat.preFillStatistics();
+//        monitor.displayMessage("Filling stattistics finished", true);
+//
+//        int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
+//        invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
+//
+//        monitor.displayMessage("Generating invalid triples....", true);
+//        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
+//        invalidTripleGenerator.generateInvalidTriples();
+//        monitor.displayMessage("Generating invalid triples finished", true);
+//
+//
+//        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
+//        try {
+//            jsonMaker.makeJSON(SharedDataHolder.ontName, ConfigParams.outputJsonPath);
+//        } catch (IOException e) {
+//            monitor.stopSystem(Util.getStackTraceAsString(e), true);
+//        }
     }
 
     public static void main(String[] args) {
@@ -126,12 +152,12 @@ public class Main {
             programMonitor = new Monitor(printStream);
             programMonitor.start("Program started", true);
             try {
-                Files.walk(Paths.get(ConfigParams.inputOntoPath)).filter(f -> f.toFile().isFile()).
-                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
+                // Files.walk(Paths.get(ConfigParams.inputOntoPath)).filter(f -> f.toFile().isFile()).
+                //       filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
                 programMonitor.start("\n\n\n", true);
-                 programMonitor.start("Program running for "+f.toAbsolutePath().toString(),  true);
+                //   programMonitor.start("Program running for "+f.toAbsolutePath().toString(),  true);
                 doOps(programMonitor, ConfigParams.inputOntoPath);
-                 });
+                //  });
             } catch (Exception ex) {
                 programMonitor.displayMessage("Program crashed", true);
                 programMonitor.displayMessage(Util.getStackTraceAsString(ex), true);

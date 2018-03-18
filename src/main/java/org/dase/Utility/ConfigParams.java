@@ -46,12 +46,12 @@ public final class ConfigParams {
 
         inputOntoPath = prop.getProperty("file.inputOntology");
 
-//        String[] inpPaths = inputOntoPath.split(File.separator);
-//        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+        String[] inpPaths = inputOntoPath.split(File.separator);
+        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
         logPath = prop.getProperty("path.outputLogPath") +"_log.txt" ;
-//
-//        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
-//        outputJsonPath = prop.getProperty("path.outputJson") + name;
+
+        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+        outputJsonPath = prop.getProperty("path.outputJson") + name;
 
         namespace = prop.getProperty("namespace");
 
