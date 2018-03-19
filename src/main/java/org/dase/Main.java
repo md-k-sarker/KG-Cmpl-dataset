@@ -4,7 +4,9 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
 import org.apache.jena.ontology.OntModel;
@@ -39,7 +41,7 @@ public class Main {
     static int SplitIndex = 0;
 
 
-    private static OntModel loadInput(String inputOntologyFile, Monitor monitor) {
+    private static OntModel loadInputMultipleGraphFromSingleOntology(String inputOntologyFile, Monitor monitor) {
 
         baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
         baseOntModel.setStrictMode(true);
@@ -104,8 +106,23 @@ public class Main {
         return ontModels;
     }
 
+    private static void cleanSharedDataHolder(){
+        SharedDataHolder.baseStatements.clear();
+        SharedDataHolder.baseStatementsAfterReasoningArrayList.clear();
+        SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.clear();
+        SharedDataHolder.baseStatementsAfterReasoning.clear();
+        SharedDataHolder.inferredStatements.clear();
+        SharedDataHolder.invalidinferredStatements.clear();
+        SharedDataHolder.atomicConcepts.clear();
+        SharedDataHolder.individuals.clear();
+        SharedDataHolder.subjects.clear();
+        SharedDataHolder.predicates.clear();
+        SharedDataHolder.objects.clear();
+        // dont clean prefixmap
+        //SharedDataHolder.prefixMap = new HashMap<>();
+    }
 
-    private static void doOps(Monitor monitor, String inputOntFullPath) {
+    private static void doOpsMultipleGraphFromSingleOntology(Monitor monitor, String inputOntFullPath) {
 
         //      String[] inpPaths = inputOntFullPath.split(File.separator);
         //   String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
@@ -113,14 +130,18 @@ public class Main {
         //String outputJsonPath = ConfigParams.inputOntoPath + name;
         // monitor.displayMessage("Json writing in: "+outputJsonPath, true);
 
-        baseOntModel = loadInput(inputOntFullPath, monitor);
+        baseOntModel = loadInputMultipleGraphFromSingleOntology(inputOntFullPath, monitor);
         ArrayList<OntModel> ontModels = splitInputOntology(monitor,baseOntModel);
 
         int modelCounter = 0;
         for (OntModel ontModel : ontModels) {
+
+            cleanSharedDataHolder();
+
             modelCounter++;
 
             monitor.displayMessage("\n-------Working with part "+ modelCounter+ " of "+ inputOntFullPath+"----------", true);
+            monitor.displayMessage("ontmodel statement size: "+ ontModel.listStatements().toList().size(), true);
 
             baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, ontModel);
 
@@ -169,7 +190,11 @@ public class Main {
         baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
         baseOntModel.setStrictMode(true);
 
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loading.......", true);
         baseOntModel.read("file:" + inputOntologyFile);
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
+        monitor.displayMessage("Profile: " + baseOntModel.getProfile(), true);
+        monitor.displayMessage("Total No of axioms in base ontology: " + baseOntModel.listStatements().toList().size(), true);
 
         SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
         SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
@@ -191,9 +216,8 @@ public class Main {
             }
         }
 
-        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
-        monitor.displayMessage("Profile: " + restrictedBaseOntModel.getProfile(), true);
-        monitor.displayMessage("Total no. of node/statements: " + restrictedBaseOntModel.getGraph().size(), true);
+
+        monitor.displayMessage("Total No of axioms in restricted graph/ontology: " + restrictedBaseOntModel.listStatements().toList().size(), true);
 
         return restrictedBaseOntModel;
 
@@ -201,14 +225,14 @@ public class Main {
 
     private static void doOpsSingleKBFromSingleOntology(Monitor monitor, String inputOntFullPath) {
 
-            String[] inpPaths = inputOntFullPath.split(File.separator);
-            String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
-            String logPath = ConfigParams.inputOntoPath +"_log" + name;
+//            String[] inpPaths = inputOntFullPath.split(File.separator);
+//            String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+//            String logPath = ConfigParams.inputOntoPath +"_log" + name;
+//
+//            name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+//            String outputJsonPath = ConfigParams.inputOntoPath + name;
 
-            name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
-            String outputJsonPath = ConfigParams.inputOntoPath + name;
-
-            restrictedBaseOntModel = loadInput(inputOntFullPath, monitor);
+            restrictedBaseOntModel = loadInputSingleKBFromSingleOntology(inputOntFullPath, monitor);
             baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
 
             OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
@@ -238,7 +262,7 @@ public class Main {
 
             JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
             try {
-                jsonMaker.makeJSON(SharedDataHolder.ontName, outputJsonPath);
+                jsonMaker.makeJSON(SharedDataHolder.ontName, ConfigParams.outputJsonPath);
             } catch (IOException e) {
                 monitor.stopSystem(Util.getStackTraceAsString(e), true);
             }
@@ -259,7 +283,7 @@ public class Main {
                 //       filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
                 programMonitor.displayMessage("\n", true);
                 //   programMonitor.start("Program running for "+f.toAbsolutePath().toString(),  true);
-                doOps(programMonitor, ConfigParams.inputOntoPath);
+                doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
                 //  });
             } catch (Exception ex) {
                 programMonitor.displayMessage("Program crashed", true);
