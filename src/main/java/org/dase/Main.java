@@ -44,39 +44,44 @@ public class Main {
         baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
         baseOntModel.setStrictMode(true);
 
+        monitor.displayMessage("Loading input Ontology " + inputOntologyFile + " ........", true);
         baseOntModel.read("file:" + inputOntologyFile);
+        monitor.displayMessage("Input Ontology: " + inputOntologyFile + " loaded", true);
+        monitor.displayMessage("Profile: " + baseOntModel.getProfile(), true);
 
         SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
         SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
 
+        monitor.displayMessage("Total No of axioms: " + baseOntModel.listStatements().toList().size(), true);
+
+
         /**
          * Take around 700 statements only
          */
-        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-        restrictedBaseOntModel.setStrictMode(true);
+//        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+//        restrictedBaseOntModel.setStrictMode(true);
+//
+//        int counter = 0;
+//        ExtendedIterator iterator = baseOntModel.listStatements();
+//        while (counter < ConfigParams.noOfBaseTriples) {
+//            if (iterator.hasNext()) {
+//                restrictedBaseOntModel.add((Statement) iterator.next());
+//                counter++;
+//            } else {
+//                break;
+//            }
+//        }
+//        monitor.displayMessage("Total no. of node/statements: " + restrictedBaseOntModel.getGraph().size(), true);
 
-        monitor.displayMessage("No of axioms: " + baseOntModel.listStatements().toList().size(), true);
-        ExtendedIterator iterator = baseOntModel.listStatements();
 
-        int counter = 0;
-        while (counter < ConfigParams.noOfBaseTriples) {
-            if (iterator.hasNext()) {
-                restrictedBaseOntModel.add((Statement) iterator.next());
-                counter++;
-            } else {
-                break;
-            }
-        }
 
-        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
-        monitor.displayMessage("Profile: " + restrictedBaseOntModel.getProfile(), true);
-        monitor.displayMessage("Total no. of node/statements: " + restrictedBaseOntModel.getGraph().size(), true);
 
-        return restrictedBaseOntModel;
+        return baseOntModel;
 
     }
 
-    private static OntModel[] splitInputOntology() {
+    private static ArrayList<OntModel> splitInputOntology(Monitor monitor,OntModel baseOntModel) {
+        monitor.displayMessage("Splitting input ontology.... ", true);
         int totalStatements = baseOntModel.listStatements().toList().size();
         ArrayList<Statement> statements = new ArrayList<>();
         statements.addAll(baseOntModel.listStatements().toList());
@@ -92,9 +97,11 @@ public class Main {
             int minIndexForLastItem = Math.min(totalStatements - usedStatements, ConfigParams.noOfBaseTriples);
             ontModel.add(statements.subList(usedStatements, usedStatements + minIndexForLastItem));
             usedStatements += minIndexForLastItem;
-        }
 
-        return null;
+            ontModels.add(ontModel);
+        }
+        monitor.displayMessage("Splitted input ontology into "+ontModels.size()+" parts.", true);
+        return ontModels;
     }
 
     private static void doOps(Monitor monitor, String inputOntFullPath) {
@@ -105,41 +112,57 @@ public class Main {
         //String outputJsonPath = ConfigParams.inputOntoPath + name;
         // monitor.displayMessage("Json writing in: "+outputJsonPath, true);
 
-        restrictedBaseOntModel = loadInput(inputOntFullPath, monitor);
-//        baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
-//
-//        OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
-//        baseStatements = inferer.extractBaseStatements();
-//        monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
-//        try {
-//            inferredStatements = inferer.extractInferredStatements(baseStatements);
-//        } catch (IOException e) {
-//            monitor.stopSystem(Util.getStackTraceAsString(e), true);
-//        }
-//        monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
-//
-//
-//        Statistics stat = new Statistics(monitor, restrictedBaseOntModel, baseStatements, baseOntModelWithInference, inferredStatements);
-//        monitor.displayMessage("Filling stattistics...", true);
-//        stat.preFillStatistics();
-//        monitor.displayMessage("Filling stattistics finished", true);
-//
-//        int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
-//        invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
-//
-//        monitor.displayMessage("Generating invalid triples....", true);
-//        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
-//        invalidTripleGenerator.generateInvalidTriples();
-//        monitor.displayMessage("Generating invalid triples finished", true);
-//
-//
-//        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
-//        try {
-//            jsonMaker.makeJSON(SharedDataHolder.ontName, ConfigParams.outputJsonPath);
-//        } catch (IOException e) {
-//            monitor.stopSystem(Util.getStackTraceAsString(e), true);
-//        }
+        baseOntModel = loadInput(inputOntFullPath, monitor);
+        ArrayList<OntModel> ontModels = splitInputOntology(monitor,baseOntModel);
+
+        int modelCounter = 0;
+        for (OntModel ontModel : ontModels) {
+            modelCounter++;
+
+            monitor.displayMessage("\n-------Working with part "+ modelCounter+ " of "+ inputOntFullPath+"----------", true);
+
+            baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, ontModel);
+
+            OntologyInferer inferer = new OntologyInferer(ontModel, monitor);
+            baseStatements = inferer.extractBaseStatements();
+            monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
+            try {
+                inferredStatements = inferer.extractInferredStatements(baseStatements);
+            } catch (IOException e) {
+                monitor.stopSystem(Util.getStackTraceAsString(e), true);
+            }
+            monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
+
+
+            Statistics stat = new Statistics(monitor, ontModel, baseStatements, baseOntModelWithInference, inferredStatements);
+            monitor.displayMessage("Filling statistics...", true);
+            stat.preFillStatistics();
+            monitor.displayMessage("Filling statistics finished", true);
+
+            int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
+            invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
+
+            monitor.displayMessage("Generating invalid triples....", true);
+            InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
+            invalidTripleGenerator.generateInvalidTriples();
+            monitor.displayMessage("Generating invalid triples finished", true);
+
+
+            JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
+            try {
+                String jsonPath = ConfigParams.outputJsonPath.replace(".json", "_"+modelCounter+".json");
+                String graphName = SharedDataHolder.ontName;
+                if (null == graphName) {
+                    graphName = "empty_"+modelCounter;
+                }
+                jsonMaker.makeJSON(graphName, jsonPath);
+            } catch (IOException e) {
+                monitor.stopSystem(Util.getStackTraceAsString(e), true);
+            }
+        }
     }
+
+
 
     public static void main(String[] args) {
 
@@ -154,7 +177,7 @@ public class Main {
             try {
                 // Files.walk(Paths.get(ConfigParams.inputOntoPath)).filter(f -> f.toFile().isFile()).
                 //       filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
-                programMonitor.start("\n\n\n", true);
+                programMonitor.displayMessage("\n", true);
                 //   programMonitor.start("Program running for "+f.toAbsolutePath().toString(),  true);
                 doOps(programMonitor, ConfigParams.inputOntoPath);
                 //  });

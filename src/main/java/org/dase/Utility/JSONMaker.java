@@ -93,11 +93,9 @@ public class JSONMaker {
 		
 		// add ontology name
 		graphName = ontoName;
-		if (null == graphName) {
-			graphName = "empty";
-		}
+
 		jsonObject.addProperty("OntologyName", graphName);
-		this.monitor.displayMessage("josn size after adding name: " + jsonObject.size(), false);
+		this.monitor.writeMessage("josn size after adding name: " + jsonObject.size());
 
 		// add prefixes
 		prefixMap = SharedDataHolder.prefixMap;
@@ -111,9 +109,9 @@ public class JSONMaker {
 		pUtil.registerPrefixMap(prefixMap);
 		
 		String prefix = gson.toJson(prefixMap);
-        this.monitor.displayMessage("prefix: " + prefix,false);
+        this.monitor.writeMessage("prefix: " + prefix);
 		jsonObject.addProperty("Prefixes", prefix);
-        this.monitor.displayMessage("josn size after adding prefix: " + jsonObject.size(), false);
+        this.monitor.writeMessage("josn size after adding prefix: " + jsonObject.size());
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
 		
 
@@ -124,18 +122,9 @@ public class JSONMaker {
             inputJA.add(statement);
         });
 
-        this.monitor.displayMessage("OriginalAxioms json size: " + inputJA.size(),false);
+        this.monitor.displayMessage("\nOriginalAxioms json size: " + inputJA.size(),false);
 		jsonObject.add("OriginalAxioms", inputJA);
 
-        // add noise axioms
-        invalidJA = new JsonArray();
-        SharedDataHolder.invalidinferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
-            invalidJA.add(statement);
-        });
-
-        this.monitor.displayMessage("InvalidInferredAxioms josn size: " + invalidJA.size(),false);
-        jsonObject.add("InvalidAxioms", invalidJA);
 		
 		// add inferred-axioms of the ontology
 		inferJA = new JsonArray();
@@ -147,10 +136,21 @@ public class JSONMaker {
         this.monitor.displayMessage("InfAxioms json size: " + inferJA.size(),false);
 		jsonObject.add("InferredAxioms", inferJA);
 
+        // add noise axioms
+        invalidJA = new JsonArray();
+        SharedDataHolder.invalidinferredStatements.forEach(stmt->{
+            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+            invalidJA.add(statement);
+        });
+
+        this.monitor.displayMessage("InvalidInferredAxioms josn size: " + invalidJA.size(),false);
+        jsonObject.add("InvalidAxioms", invalidJA);
+
 
         /**
          * Please close the bufferredwriter/filewriter
          */
+        monitor.displayMessage("\nWriting json to: "+writeTo+"\n", true);
         BufferedWriter bw = new BufferedWriter(new FileWriter(writeTo));
 		gson.toJson(jsonObject, bw);
 		bw.close();

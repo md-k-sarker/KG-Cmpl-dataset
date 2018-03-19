@@ -73,11 +73,11 @@ public class InvalidTripleGenerator {
 
         // change individual
         Individual indv = null;
-        while(null == indv) {
+        while (null == indv) {
             int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
             stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
             // not all subject are individuals
-            if(stmt.getSubject().canAs(Individual.class)) {
+            if (stmt.getSubject().canAs(Individual.class)) {
                 indv = (Individual) stmt.getSubject().as(Individual.class);
             }
         }
@@ -145,7 +145,7 @@ public class InvalidTripleGenerator {
      * @return
      */
     private boolean isExist(Statement stmt) {
-        if ((SharedDataHolder.baseStatementsAfterReasoning.contains(stmt)) && SharedDataHolder.invalidinferredStatements.contains(stmt))
+        if ((SharedDataHolder.baseStatementsAfterReasoning.contains(stmt)) || SharedDataHolder.invalidinferredStatements.contains(stmt))
             return true;
         else return false;
     }
@@ -180,12 +180,12 @@ public class InvalidTripleGenerator {
                     // generate by changing class
                     newStmt = generateTripleByChangingClass();
                 }
-                monitor.writeMessage(" stmt type: "+ tripleType);
-                if (!isExist(newStmt)) {
+                monitor.writeMessage(" stmt type: " + tripleType);
+                if (!(null == newStmt) && !(isExist(newStmt))) {
                     SharedDataHolder.invalidinferredStatements.add(newStmt);
                     this.generatedTripleCounter++;
                 }
-                monitor.writeMessage("Gen. no. "+this.generatedTripleCounter+ " invalid triple: "+ newStmt.toString());
+                monitor.writeMessage("Gen. no. " + this.generatedTripleCounter + " invalid triple: " + newStmt.toString());
             }
             return true;
         } catch (Exception ex) {

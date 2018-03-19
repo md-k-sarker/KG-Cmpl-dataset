@@ -118,8 +118,8 @@ public class OntologyInferer {
 		// System.out.println(e.getKey() + " " + e.getValue());
 		// });
 
-        monitor.displayMessage("base size: " + baseStatements.size(), true);
-        monitor.displayMessage("infer size: " + inferredStatements.size(), true);
+        monitor.displayMessage("total base axioms: " + baseStatements.size(), true);
+        monitor.displayMessage("total inferred axioms: " + inferredStatements.size()+"\n", true);
 
 		return inferredStatements;
 	}
