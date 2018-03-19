@@ -104,6 +104,7 @@ public class Main {
         return ontModels;
     }
 
+
     private static void doOps(Monitor monitor, String inputOntFullPath) {
 
         //      String[] inpPaths = inputOntFullPath.split(File.separator);
@@ -163,6 +164,85 @@ public class Main {
     }
 
 
+    private static OntModel loadInputSingleKBFromSingleOntology(String inputOntologyFile, Monitor monitor) {
+
+        baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        baseOntModel.setStrictMode(true);
+
+        baseOntModel.read("file:" + inputOntologyFile);
+
+        SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
+        SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
+
+        /**
+         * Take around 700 statements only
+         */
+        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        restrictedBaseOntModel.setStrictMode(true);
+
+        ExtendedIterator iterator = baseOntModel.listStatements();
+        int counter = 0;
+        while (counter < ConfigParams.noOfBaseTriples) {
+            if (iterator.hasNext()) {
+                restrictedBaseOntModel.add((Statement) iterator.next());
+                counter++;
+            } else {
+                break;
+            }
+        }
+
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
+        monitor.displayMessage("Profile: " + restrictedBaseOntModel.getProfile(), true);
+        monitor.displayMessage("Total no. of node/statements: " + restrictedBaseOntModel.getGraph().size(), true);
+
+        return restrictedBaseOntModel;
+
+    }
+
+    private static void doOpsSingleKBFromSingleOntology(Monitor monitor, String inputOntFullPath) {
+
+            String[] inpPaths = inputOntFullPath.split(File.separator);
+            String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
+            String logPath = ConfigParams.inputOntoPath +"_log" + name;
+
+            name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
+            String outputJsonPath = ConfigParams.inputOntoPath + name;
+
+            restrictedBaseOntModel = loadInput(inputOntFullPath, monitor);
+            baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, restrictedBaseOntModel);
+
+            OntologyInferer inferer = new OntologyInferer(restrictedBaseOntModel, monitor);
+            baseStatements = inferer.extractBaseStatements();
+            monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
+            try {
+                inferredStatements = inferer.extractInferredStatements(baseStatements);
+            } catch (IOException e) {
+                monitor.stopSystem(Util.getStackTraceAsString(e), true);
+            }
+            monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
+
+
+            Statistics stat = new Statistics(monitor, restrictedBaseOntModel, baseStatements, baseOntModelWithInference, inferredStatements);
+            monitor.displayMessage("Filling stattistics...", true);
+            stat.preFillStatistics();
+            monitor.displayMessage("Filling stattistics finished", true);
+
+            int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
+            invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
+
+            monitor.displayMessage("Generating invalid triples....", true);
+            InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
+            invalidTripleGenerator.generateInvalidTriples();
+            monitor.displayMessage("Generating invalid triples finished", true);
+
+
+            JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
+            try {
+                jsonMaker.makeJSON(SharedDataHolder.ontName, outputJsonPath);
+            } catch (IOException e) {
+                monitor.stopSystem(Util.getStackTraceAsString(e), true);
+            }
+    }
 
     public static void main(String[] args) {
 
