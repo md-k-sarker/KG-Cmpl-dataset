@@ -145,6 +145,7 @@ public class Main {
 
             baseOntModelWithInference = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, ontModel);
 
+
             OntologyInferer inferer = new OntologyInferer(ontModel, monitor);
             baseStatements = inferer.extractBaseStatements();
             monitor.displayMessage("Inferring statements by rdfs reasoner...", true);
