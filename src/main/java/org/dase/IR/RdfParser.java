@@ -20,7 +20,7 @@ public class RdfParser {
         ontModel.read(rdfPath);
 
         // iterate over all triples.
-        // in jena triples are called statement.
+        // in apache jena api triples are called statement.
         ontModel.listStatements().forEachRemaining(statement -> {
             System.out.println("\nstatement: "+statement);
             System.out.println("subject: "+statement.getSubject());
@@ -29,6 +29,10 @@ public class RdfParser {
         });
     }
 
+    /**
+     * Test
+     * @param args
+     */
     public static void main(String [] args){
         String rdfFilePath = "/Users/sarker/Workspaces/Jetbrains/inductivereasoning/src/main/resources/data/testrdf.rdf";
         RdfParser rdfParser = new RdfParser(rdfFilePath);

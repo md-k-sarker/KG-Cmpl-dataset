@@ -32,14 +32,15 @@ public class SharedDataHolder {
     public static ArrayList<Resource> subjects;
     public static ArrayList<Property> predicates;
     public static ArrayList<RDFNode> objects;
+
     public static Map<String, String> prefixMap;
     public static String ontName;
 
     static {
         baseStatements = ConcurrentHashMap.newKeySet();
+        baseStatementsAfterReasoning = ConcurrentHashMap.newKeySet();
         baseStatementsAfterReasoningArrayList = new ArrayList<>();
         rdfTypeStatementsAfterReasoningArrayList = new ArrayList<>();
-        baseStatementsAfterReasoning = ConcurrentHashMap.newKeySet();
         inferredStatements = ConcurrentHashMap.newKeySet();
         invalidinferredStatements = ConcurrentHashMap.newKeySet();
         atomicConcepts = new ArrayList<>();

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
+import com.google.gson.*;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.Ontology;
 import org.apache.jena.rdf.model.RDFNode;
@@ -17,11 +18,6 @@ import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.PrintUtil;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import org.dase.IR.SharedDataHolder;
 
 public class JSONMaker {
@@ -32,7 +28,7 @@ public class JSONMaker {
 	OntModel baseOntModel;
 	String graphName = "";
 	private Map<String, String> prefixMap;
-	private Map<String, String> reversePrefixMap;
+	//private Map<String, String> reversePrefixMap;
 
 	Gson gson;
 
@@ -43,52 +39,52 @@ public class JSONMaker {
 		jsonObject = new JsonObject();
 	}
 
-	private String getNormalizedStatement(Statement stmt) {
-		// System.out.println("namespace:" + stmt.getSubject().getNameSpace());
-		// namespace print the whole name
-		
-		String [] split = stmt.getSubject().toString().split("#");
-		String key = split[0];
-		if(!key.endsWith("#")) {
-			key = key+ "#";
-		}
-		System.out.println("subject: "+ stmt.getSubject() );
-		System.out.println("key: "+ key);
-		System.out.println("split[1]: "+ split[1]);
-		System.out.println("reversePrefixMap.get(key): "+ reversePrefixMap.get(key));
-		String subject = reversePrefixMap.get(key) +":"+ stmt.getSubject().getLocalName();
-		
-		split = stmt.getPredicate().toString().split("#");
-		key = split[0];
-		if(!key.endsWith("#")) {
-			key = key+ "#";
-		}
-		System.out.println("predicate: "+ stmt.getPredicate());
-		System.out.println("key: "+ key);
-		System.out.println("split[1]: "+ split[1]);
-		System.out.println("reversePrefixMap.get(key): "+ reversePrefixMap.get(key));
-		String predicate = reversePrefixMap.get(key) +":"+ stmt.getPredicate().getLocalName();
-		
-		RDFNode objectNode = stmt.getObject();
-		String object = "";
-		if (objectNode instanceof Resource) {
-			split = ((Resource) objectNode).toString().split("#");
-			object = reversePrefixMap.get(split[0] +"#"+ ((Resource) objectNode).getLocalName());
-		} else {
-			// object is a literal
-			object = objectNode.toString();
-		}
-
-		String statement = subject + "," + predicate + "," + object;
-		//System.out.println("statement: "+ statement);
-		return statement;
-	}
+//	private String getNormalizedStatement(Statement stmt) {
+//		// System.out.println("namespace:" + stmt.getSubject().getNameSpace());
+//		// namespace print the whole name
+//
+//		String [] split = stmt.getSubject().toString().split("#");
+//		String key = split[0];
+//		if(!key.endsWith("#")) {
+//			key = key+ "#";
+//		}
+//		System.out.println("subject: "+ stmt.getSubject() );
+//		System.out.println("key: "+ key);
+//		System.out.println("split[1]: "+ split[1]);
+//		System.out.println("reversePrefixMap.get(key): "+ reversePrefixMap.get(key));
+//		String subject = reversePrefixMap.get(key) +":"+ stmt.getSubject().getLocalName();
+//
+//		split = stmt.getPredicate().toString().split("#");
+//		key = split[0];
+//		if(!key.endsWith("#")) {
+//			key = key+ "#";
+//		}
+//		System.out.println("predicate: "+ stmt.getPredicate());
+//		System.out.println("key: "+ key);
+//		System.out.println("split[1]: "+ split[1]);
+//		System.out.println("reversePrefixMap.get(key): "+ reversePrefixMap.get(key));
+//		String predicate = reversePrefixMap.get(key) +":"+ stmt.getPredicate().getLocalName();
+//
+//		RDFNode objectNode = stmt.getObject();
+//		String object = "";
+//		if (objectNode instanceof Resource) {
+//			split = ((Resource) objectNode).toString().split("#");
+//			object = reversePrefixMap.get(split[0] +"#"+ ((Resource) objectNode).getLocalName());
+//		} else {
+//			// object is a literal
+//			object = objectNode.toString();
+//		}
+//
+//		String statement = subject + "," + predicate + "," + object;
+//		//System.out.println("statement: "+ statement);
+//		return statement;
+//	}
 
 	public void makeJSON(String ontoName, String writeTo) throws JsonIOException, IOException {
 		
-		reversePrefixMap = new HashMap<>();
+		//reversePrefixMap = new HashMap<>();
 		PrintUtil pUtil = new PrintUtil();
-		JsonArray inputJA, inferJA, invalidJA;
+		JsonArray inputJA, inferJA, invalidJA, prefixJA;
 		
 		
 		// add ontology name
@@ -99,18 +95,19 @@ public class JSONMaker {
 
 		// add prefixes
 		prefixMap = SharedDataHolder.prefixMap;
-		prefixMap.entrySet().forEach(e->{
-			reversePrefixMap.put(e.getValue(), e.getKey());
-		});
-		String dfPrefix = prefixMap.get("");
-		if(null ==dfPrefix)
-		    dfPrefix = "";
-		prefixMap.put("default",dfPrefix);
+//		prefixMap.entrySet().forEach(e->{
+//			reversePrefixMap.put(e.getValue(), e.getKey());
+//		});
+//		String dfPrefix = prefixMap.get("");
+//		if(null == dfPrefix)
+//		    dfPrefix = "";
+//		prefixMap.put("default",dfPrefix);
 		pUtil.registerPrefixMap(prefixMap);
-		
-		String prefix = gson.toJson(prefixMap);
-        this.monitor.writeMessage("prefix: " + prefix);
-		jsonObject.addProperty("Prefixes", prefix);
+
+
+        JsonElement prefix = gson.toJsonTree( prefixMap);
+        this.monitor.writeMessage("prefix: " + prefix.toString());
+		jsonObject.add("Prefixes", gson.toJsonTree( prefixMap));
         this.monitor.writeMessage("josn size after adding prefix: " + jsonObject.size());
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
 		
@@ -118,32 +115,33 @@ public class JSONMaker {
 		// add input-axioms of the ontology
 		inputJA = new JsonArray();
 		SharedDataHolder.baseStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+            String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
             inputJA.add(statement);
         });
 
-        this.monitor.displayMessage("\nOriginalAxioms json size: " + inputJA.size(),false);
+        this.monitor.displayMessage("\nOriginalAxioms json size: " + inputJA.size(),true);
 		jsonObject.add("OriginalAxioms", inputJA);
 
 		
 		// add inferred-axioms of the ontology
 		inferJA = new JsonArray();
 		SharedDataHolder.inferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+            String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
             inferJA.add(statement);
         });
 
-        this.monitor.displayMessage("InfAxioms json size: " + inferJA.size(),false);
+        this.monitor.displayMessage("InfAxioms json size: " + inferJA.size(),true);
 		jsonObject.add("InferredAxioms", inferJA);
 
         // add noise axioms
         invalidJA = new JsonArray();
         SharedDataHolder.invalidinferredStatements.forEach(stmt->{
-            String statement = pUtil.print(stmt).replace("(", "").replace(")", "");
+            String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
+			this.monitor.writeMessage("Invalid: "+ statement);
             invalidJA.add(statement);
         });
 
-        this.monitor.displayMessage("InvalidInferredAxioms josn size: " + invalidJA.size(),false);
+        this.monitor.displayMessage("InvalidInferredAxioms json size: " + invalidJA.size(),true);
         jsonObject.add("InvalidAxioms", invalidJA);
 
 

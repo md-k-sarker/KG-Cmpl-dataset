@@ -108,9 +108,9 @@ public class Main {
 
     private static void cleanSharedDataHolder(){
         SharedDataHolder.baseStatements.clear();
+        SharedDataHolder.baseStatementsAfterReasoning.clear();
         SharedDataHolder.baseStatementsAfterReasoningArrayList.clear();
         SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.clear();
-        SharedDataHolder.baseStatementsAfterReasoning.clear();
         SharedDataHolder.inferredStatements.clear();
         SharedDataHolder.invalidinferredStatements.clear();
         SharedDataHolder.atomicConcepts.clear();
