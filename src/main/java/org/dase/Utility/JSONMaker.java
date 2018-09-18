@@ -84,7 +84,7 @@ public class JSONMaker {
 		
 		//reversePrefixMap = new HashMap<>();
 		PrintUtil pUtil = new PrintUtil();
-		JsonArray inputJA, inferJA, invalidJA, prefixJA;
+		JsonArray inputJA, inferJA, invalidJA;
 		
 		
 		// add ontology name
@@ -105,8 +105,8 @@ public class JSONMaker {
 		pUtil.registerPrefixMap(prefixMap);
 
 
-        JsonElement prefix = gson.toJsonTree( prefixMap);
-        this.monitor.writeMessage("prefix: " + prefix.toString());
+        //JsonElement prefix = gson.toJsonTree( prefixMap);
+        //this.monitor.writeMessage("prefix: " + prefix.toString());
 		jsonObject.add("Prefixes", gson.toJsonTree( prefixMap));
         this.monitor.writeMessage("josn size after adding prefix: " + jsonObject.size());
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
@@ -118,7 +118,6 @@ public class JSONMaker {
             String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
             inputJA.add(statement);
         });
-
         this.monitor.displayMessage("\nOriginalAxioms json size: " + inputJA.size(),true);
 		jsonObject.add("OriginalAxioms", inputJA);
 
@@ -129,7 +128,6 @@ public class JSONMaker {
             String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
             inferJA.add(statement);
         });
-
         this.monitor.displayMessage("InfAxioms json size: " + inferJA.size(),true);
 		jsonObject.add("InferredAxioms", inferJA);
 
@@ -137,10 +135,9 @@ public class JSONMaker {
         invalidJA = new JsonArray();
         SharedDataHolder.invalidinferredStatements.forEach(stmt->{
             String statement = pUtil.print(stmt).replaceAll("[<|(|>|)|']", "");
-			this.monitor.writeMessage("Invalid: "+ statement);
+			//this.monitor.writeMessage("Invalid: "+ statement);
             invalidJA.add(statement);
         });
-
         this.monitor.displayMessage("InvalidInferredAxioms json size: " + invalidJA.size(),true);
         jsonObject.add("InvalidAxioms", invalidJA);
 

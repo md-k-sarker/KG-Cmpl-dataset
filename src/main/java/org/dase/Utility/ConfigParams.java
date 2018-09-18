@@ -3,6 +3,7 @@ package org.dase.Utility;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public final class ConfigParams {
@@ -14,6 +15,7 @@ public final class ConfigParams {
 
     // properties needed
     public static String logPath;
+    public static String inputOntoRootPath;
     public static String inputOntoPath;
     public static String outputJsonPath;
     public static String namespace;
@@ -21,8 +23,13 @@ public final class ConfigParams {
     public static int noOfinvalidTriplesNeeded;
     public static int randomSeed;
     public static boolean debug;
+    public static boolean batchRun;
 
-    static {
+
+    /**
+     * Initiate configParams
+     */
+    public static void init(){
         prop = new Properties();
 
         input = ConfigParams.class.getClassLoader().getResourceAsStream(configFileName);
@@ -44,22 +51,36 @@ public final class ConfigParams {
             System.out.println(k + ": " + v);
         });
 
-        inputOntoPath = prop.getProperty("file.inputOntology");
-
-        String[] inpPaths = inputOntoPath.split(File.separator);
-        String name = inpPaths[inpPaths.length - 1].replace(".owl", ".txt");
-        logPath = prop.getProperty("path.outputLogPath") +"_log.txt" ;
-
-        name = inpPaths[inpPaths.length - 1].replace(".owl", ".json");
-        outputJsonPath = prop.getProperty("path.outputJson") + name;
-
         namespace = prop.getProperty("namespace");
 
         noOfBaseTriples = Integer.valueOf(prop.getProperty("noOfBaseTriples"));
         noOfinvalidTriplesNeeded = Integer.valueOf(prop.getProperty("noOfinvalidTriplesNeeded"));
         randomSeed = Integer.valueOf(prop.getProperty("randomSeed"));
         debug = Boolean.parseBoolean(prop.getProperty("debug"));
+        batchRun = Boolean.parseBoolean(prop.getProperty("batchRun"));
 
+        generateLogPath();
+
+        if(!batchRun) {
+            inputOntoPath = prop.getProperty("file.inputOntology");
+            generateOutputPath();
+        }else{
+            inputOntoRootPath = prop.getProperty("file.inputOntology");
+        }
+    }
+
+    public static void setInputOntoPath(String _inputOntoPath){
+        inputOntoPath = _inputOntoPath;
+    }
+
+    public static void generateOutputPath(){
+
+        String name = Paths.get(inputOntoPath).getFileName().toString().replace(".owl", ".json");
+        outputJsonPath = prop.getProperty("path.outputJson") + name;
+    }
+
+    public static void generateLogPath(){
+        logPath = prop.getProperty("path.outputLogPath") +"_log.txt" ;
     }
 
     // private constructor, no instantiation

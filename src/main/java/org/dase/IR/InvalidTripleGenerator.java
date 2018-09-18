@@ -180,12 +180,12 @@ public class InvalidTripleGenerator {
                     // generate by changing class
                     newStmt = generateTripleByChangingClass();
                 }
-                monitor.writeMessage(" stmt type: " + tripleType);
+                //monitor.writeMessage(" stmt type: " + tripleType);
                 if (!(null == newStmt) && !(isExist(newStmt))) {
                     SharedDataHolder.invalidinferredStatements.add(newStmt);
                     this.generatedTripleCounter++;
                 }
-                monitor.writeMessage("Gen. no. " + this.generatedTripleCounter + " invalid triple: " + newStmt.toString());
+                //monitor.writeMessage("Gen. no. " + this.generatedTripleCounter + " invalid triple: " + newStmt.toString());
             }
             return true;
         } catch (Exception ex) {
