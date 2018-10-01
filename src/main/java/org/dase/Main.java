@@ -126,17 +126,22 @@ public class Main {
         SharedDataHolder.objects.clear();
         // dont clean prefixmap
         //SharedDataHolder.prefixMap = new HashMap<>();
+        SharedDataHolder.axiomaticTripleCounterInBase = 0;
+        SharedDataHolder.axiomaticTripleCounterInInferred = 0;
+        SharedDataHolder.axiomaticTripleCounterInInvalid = 0;
+
     }
 
     /**
      * Remove annotation axioms
+     *
      * @param ontModel
      * @param monitor
      * @return
      */
     private static OntModel removeAnnotations(OntModel ontModel, Monitor monitor) {
 
-        monitor.displayMessage("Ontology size with annotations: "+ ontModel.listStatements().toList().size(), true);
+        monitor.displayMessage("Ontology size with annotations: " + ontModel.listStatements().toList().size(), true);
 
         baseOntModelWithoutAnnotations = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
         ontModel.listStatements().forEachRemaining(statement -> {
@@ -145,7 +150,7 @@ public class Main {
             }
         });
 
-        monitor.displayMessage("Ontology size without annotations: "+ baseOntModelWithoutAnnotations.listStatements().toList().size(), true);
+        monitor.displayMessage("Ontology size without annotations: " + baseOntModelWithoutAnnotations.listStatements().toList().size(), true);
         return baseOntModelWithoutAnnotations;
     }
 
@@ -198,6 +203,9 @@ public class Main {
             invalidTripleGenerator.generateInvalidTriples();
             monitor.displayMessage("Generating invalid triples finished", true);
 
+            monitor.displayMessage("Counting axiomatic triples...", true);
+            stat.countAxiomaticTriples();
+            monitor.displayMessage("Counting axiomatic triples finished", true);
 
             JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
             try {
@@ -319,7 +327,7 @@ public class Main {
 
             if (ConfigParams.batchRun) {
                 Files.walk(Paths.get(ConfigParams.inputOntoRootPath)).filter(f -> f.toFile().isFile()).
-                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
+                        filter(f -> f.toFile().getAbsolutePath().endsWith(".rdf")).forEach(f -> {
                     programMonitor.displayMessage("\n", true);
                     programMonitor.start("Program running for " + f.toAbsolutePath().toString(), true);
                     ConfigParams.setInputOntoPath(f.toAbsolutePath().toString());
@@ -327,6 +335,7 @@ public class Main {
                     doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
                     inputOntologiesJA.add(ConfigParams.inputOntoPath);
                 });
+
             } else {
                 doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
                 inputOntologiesJA.add(ConfigParams.inputOntoPath);

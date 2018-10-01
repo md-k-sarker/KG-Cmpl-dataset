@@ -110,7 +110,13 @@ public class JSONMaker {
 		jsonObject.add("Prefixes", gson.toJsonTree( prefixMap));
         this.monitor.writeMessage("josn size after adding prefix: " + jsonObject.size());
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
-		
+
+        jsonObject.add("TotalBaseTriples",  gson.toJsonTree(SharedDataHolder.baseStatements.size()));
+        jsonObject.add("TotalInferredAxioms",  gson.toJsonTree(SharedDataHolder.inferredStatements.size()));
+        jsonObject.add("TotalInvalidInferredAxioms",  gson.toJsonTree(SharedDataHolder.invalidinferredStatements.size()));
+        jsonObject.add("AxiomaticTriplesInBase",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInBase));
+        jsonObject.add("AxiomaticTriplesInInferred",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInferred));
+        jsonObject.add("AxiomaticTriplesInInvalid",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInvalid));
 
 		// add input-axioms of the ontology
 		inputJA = new JsonArray();
@@ -140,6 +146,7 @@ public class JSONMaker {
         });
         this.monitor.displayMessage("InvalidInferredAxioms json size: " + invalidJA.size(),true);
         jsonObject.add("InvalidAxioms", invalidJA);
+
 
 
         /**

@@ -1,6 +1,5 @@
 package org.dase.Utility;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
@@ -24,12 +23,13 @@ public final class ConfigParams {
     public static int randomSeed;
     public static boolean debug;
     public static boolean batchRun;
+    public static String inputOntoFileExtension;
 
 
     /**
      * Initiate configParams
      */
-    public static void init(){
+    public static void init() {
         prop = new Properties();
 
         input = ConfigParams.class.getClassLoader().getResourceAsStream(configFileName);
@@ -61,26 +61,31 @@ public final class ConfigParams {
 
         generateLogPath();
 
-        if(!batchRun) {
+        if (!batchRun) {
             inputOntoPath = prop.getProperty("file.inputOntology");
+            int i = inputOntoPath.lastIndexOf('.');
+            if (i > 0) {
+                inputOntoFileExtension = inputOntoPath.substring(i + 1);
+            }
             generateOutputPath();
-        }else{
+        } else {
             inputOntoRootPath = prop.getProperty("file.inputOntology");
         }
     }
 
-    public static void setInputOntoPath(String _inputOntoPath){
+    public static void setInputOntoPath(String _inputOntoPath) {
         inputOntoPath = _inputOntoPath;
     }
 
-    public static void generateOutputPath(){
+    public static void generateOutputPath() {
 
-        String name = Paths.get(inputOntoPath).getFileName().toString().replace(".owl", ".json");
+        String name = Paths.get(inputOntoPath).getFileName().toString().
+                replace(".rdf" , ".json");
         outputJsonPath = prop.getProperty("path.outputJson") + name;
     }
 
-    public static void generateLogPath(){
-        logPath = prop.getProperty("path.outputLogPath") +"_log.txt" ;
+    public static void generateLogPath() {
+        logPath = prop.getProperty("path.outputLogPath") + "_log.txt";
     }
 
     // private constructor, no instantiation

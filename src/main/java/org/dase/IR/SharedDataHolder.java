@@ -36,6 +36,10 @@ public class SharedDataHolder {
     public static Map<String, String> prefixMap;
     public static String ontName;
 
+    public static int axiomaticTripleCounterInBase = 0;
+    public static int axiomaticTripleCounterInInferred = 0;
+    public static int axiomaticTripleCounterInInvalid = 0;
+
     static {
         baseStatements = ConcurrentHashMap.newKeySet();
         baseStatementsAfterReasoning = ConcurrentHashMap.newKeySet();
