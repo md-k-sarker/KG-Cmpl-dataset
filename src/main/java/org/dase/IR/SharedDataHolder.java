@@ -40,6 +40,9 @@ public class SharedDataHolder {
     public static int axiomaticTripleCounterInInferred = 0;
     public static int axiomaticTripleCounterInInvalid = 0;
 
+    public static int totalTriplesInBaseKGWithoutAnnotations =0;
+    public static int totalSplitedModelFromBaseKG = 0;
+
     static {
         baseStatements = ConcurrentHashMap.newKeySet();
         baseStatementsAfterReasoning = ConcurrentHashMap.newKeySet();

@@ -157,6 +157,10 @@ public class JSONMaker {
 		gson.toJson(jsonObject, bw);
 		bw.close();
 
+		// free memory
+        jsonObject = null;
+        gson = null;
+
 	}
 
     /**

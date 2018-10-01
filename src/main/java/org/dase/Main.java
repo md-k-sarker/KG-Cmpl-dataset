@@ -130,6 +130,9 @@ public class Main {
         SharedDataHolder.axiomaticTripleCounterInInferred = 0;
         SharedDataHolder.axiomaticTripleCounterInInvalid = 0;
 
+        SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations = 0;
+        SharedDataHolder.totalSplitedModelFromBaseKG = 0;
+
     }
 
     /**
@@ -165,6 +168,8 @@ public class Main {
         baseOntModel = loadInputMultipleGraphFromSingleOntology(inputOntFullPath, monitor);
         baseOntModelWithoutAnnotations = removeAnnotations(baseOntModel, monitor);
         ArrayList<OntModel> ontModels = splitInputOntology(monitor, baseOntModelWithoutAnnotations);
+        SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations = baseOntModelWithoutAnnotations.listStatements().toList().size();
+        SharedDataHolder.totalSplitedModelFromBaseKG = ontModels.size();
 
         int modelCounter = 0;
         for (OntModel ontModel : ontModels) {
@@ -212,7 +217,7 @@ public class Main {
                 String jsonPath = ConfigParams.outputJsonPath.replace(".json", "_" + modelCounter + ".json");
                 String graphName = SharedDataHolder.ontName;
                 if (null == graphName) {
-                    graphName = "empty_" + modelCounter;
+                    graphName = ConfigParams.inputOntoFileNameWithoutExtention + "_" + modelCounter;
                 }
                 jsonMaker.makeJSON(graphName, jsonPath);
             } catch (IOException e) {
@@ -333,11 +338,23 @@ public class Main {
                     ConfigParams.setInputOntoPath(f.toAbsolutePath().toString());
                     ConfigParams.generateOutputPath();
                     doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
+
+                    JsonObject js = new JsonObject();
+                    js.add("totalTriplesInBaseKGWithoutAnnotations", gson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
+                    js.add("totalSplitedModelFromBaseKG", gson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
+
+                    jsonObject.add(ConfigParams.inputOntoPath, js);
                     inputOntologiesJA.add(ConfigParams.inputOntoPath);
                 });
 
             } else {
                 doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
+
+                JsonObject js = new JsonObject();
+                js.add("totalTriplesInBaseKGWithoutAnnotations", gson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
+                js.add("totalSplitedModelFromBaseKG", gson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
+
+                jsonObject.add(ConfigParams.inputOntoPath, js);
                 inputOntologiesJA.add(ConfigParams.inputOntoPath);
             }
 

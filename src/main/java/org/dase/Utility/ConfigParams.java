@@ -16,6 +16,7 @@ public final class ConfigParams {
     public static String logPath;
     public static String inputOntoRootPath;
     public static String inputOntoPath;
+    public static String inputOntoFileNameWithoutExtention;
     public static String outputJsonPath;
     public static String namespace;
     public static int noOfBaseTriples;
@@ -24,6 +25,7 @@ public final class ConfigParams {
     public static boolean debug;
     public static boolean batchRun;
     public static String inputOntoFileExtension;
+    //public static String validExtentions;
 
 
     /**
@@ -48,7 +50,7 @@ public final class ConfigParams {
         System.out.println("Printing config properties: ");
         // print proeprty values
         prop.forEach((k, v) -> {
-            System.out.println(k + ": " + v);
+            System.out.println("\t" + k + ": " + v);
         });
 
         namespace = prop.getProperty("namespace");
@@ -61,12 +63,15 @@ public final class ConfigParams {
 
         generateLogPath();
 
+        //validExtentions = prop.getProperty("validExtentions");
+
         if (!batchRun) {
             inputOntoPath = prop.getProperty("file.inputOntology");
             int i = inputOntoPath.lastIndexOf('.');
             if (i > 0) {
                 inputOntoFileExtension = inputOntoPath.substring(i + 1);
             }
+            inputOntoFileNameWithoutExtention = Paths.get(inputOntoPath).getFileName().toString().replaceFirst("[.][^.]+$", "");
             generateOutputPath();
         } else {
             inputOntoRootPath = prop.getProperty("file.inputOntology");
@@ -75,17 +80,18 @@ public final class ConfigParams {
 
     public static void setInputOntoPath(String _inputOntoPath) {
         inputOntoPath = _inputOntoPath;
+        inputOntoFileNameWithoutExtention = Paths.get(inputOntoPath).getFileName().toString().replaceFirst("[.][^.]+$", "");
     }
 
     public static void generateOutputPath() {
 
         String name = Paths.get(inputOntoPath).getFileName().toString().
-                replace(".rdf" , ".json");
+                replace(".rdf", ".json");
         outputJsonPath = prop.getProperty("path.outputJson") + name;
     }
 
     public static void generateLogPath() {
-        logPath = prop.getProperty("path.outputLogPath") + "_log.txt";
+        logPath = prop.getProperty("path.outputLogPath") + "log.log";
     }
 
     // private constructor, no instantiation
