@@ -331,8 +331,9 @@ public class Main {
             JsonArray inputOntologiesJA = new JsonArray();
 
             if (ConfigParams.batchRun) {
+
                 Files.walk(Paths.get(ConfigParams.inputOntoRootPath)).filter(f -> f.toFile().isFile()).
-                        filter(f -> f.toFile().getAbsolutePath().endsWith(".rdf")).forEach(f -> {
+                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
                     programMonitor.displayMessage("\n", true);
                     programMonitor.start("Program running for " + f.toAbsolutePath().toString(), true);
                     ConfigParams.setInputOntoPath(f.toAbsolutePath().toString());

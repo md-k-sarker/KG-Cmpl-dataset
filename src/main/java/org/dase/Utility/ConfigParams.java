@@ -86,7 +86,7 @@ public final class ConfigParams {
     public static void generateOutputPath() {
 
         String name = Paths.get(inputOntoPath).getFileName().toString().
-                replace(".rdf", ".json");
+                replace(".owl", ".json");
         outputJsonPath = prop.getProperty("path.outputJson") + name;
     }
 

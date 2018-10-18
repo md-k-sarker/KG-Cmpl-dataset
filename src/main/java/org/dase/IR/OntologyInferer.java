@@ -25,56 +25,56 @@ import org.dase.Utility.Monitor;
 public class OntologyInferer {
 
     Monitor monitor;
-	private OntModel baseOntModel;
-	private OntModel infOntModel;
-	static OntModel invalidInfOntModel;
-	static KeySetView<Statement, Boolean> baseStatements;
-	static KeySetView<Statement, Boolean> inferredStatements;
+    private OntModel baseOntModel;
+    private OntModel infOntModel;
+    static OntModel invalidInfOntModel;
+    static KeySetView<Statement, Boolean> baseStatements;
+    static KeySetView<Statement, Boolean> inferredStatements;
 //	static String inputOntologyFile = "/Users/sarker/Mega_Cloud/Inductive Reasoning/input ontologies/owl format/lubm-univ-bench.owl";
 //	static String inferredValidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/inferred ontologies/";
 //	static String invalidOntologyPath = "/Users/sarker/Mega_Cloud/Inductive Reasoning/invalid ontologies/";
 
-	public OntologyInferer(OntModel baseOntModel, Monitor monitor) {
+    public OntologyInferer(OntModel baseOntModel, Monitor monitor) {
         this.baseOntModel = baseOntModel;
         this.monitor = monitor;
-	}
+    }
 
-	public static void printStatements() {
-		OntModel baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-		baseOntModel.setStrictMode(true);
+    public static void printStatements() {
+        OntModel baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        baseOntModel.setStrictMode(true);
 
-		baseOntModel.read("testOnto.owl");
-		// print info
-		System.out.println("Profile: " + baseOntModel);
-		System.out.println("Profile: " + baseOntModel.getProfile());
-		System.out.println("Size of node/statement:" + baseOntModel.getGraph().size());
+        baseOntModel.read("testOnto.owl");
+        // print info
+        System.out.println("Profile: " + baseOntModel);
+        System.out.println("Profile: " + baseOntModel.getProfile());
+        System.out.println("Size of node/statement:" + baseOntModel.getGraph().size());
 
-		// list the statements in the Model
-		StmtIterator iter = baseOntModel.listStatements();
+        // list the statements in the Model
+        StmtIterator iter = baseOntModel.listStatements();
 
-		// print out the predicate, subject and object of each statement
-		while (iter.hasNext()) {
-			Statement stmt = iter.nextStatement(); // get next statement
+        // print out the predicate, subject and object of each statement
+        while (iter.hasNext()) {
+            Statement stmt = iter.nextStatement(); // get next statement
 
-			Resource subject = stmt.getSubject(); // get the subject
-			Property predicate = stmt.getPredicate(); // get the predicate
-			RDFNode object = stmt.getObject(); // get the object
+            Resource subject = stmt.getSubject(); // get the subject
+            Property predicate = stmt.getPredicate(); // get the predicate
+            RDFNode object = stmt.getObject(); // get the object
 
-			System.out.print(subject.toString());
-			System.out.print(" " + predicate.toString() + " ");
-			if (object instanceof Resource) {
-				System.out.print(object.toString());
-			} else {
-				// object is a literal
-				System.out.print(" \"" + object.toString() + "\"");
-			}
+            System.out.print(subject.toString());
+            System.out.print(" " + predicate.toString() + " ");
+            if (object instanceof Resource) {
+                System.out.print(object.toString());
+            } else {
+                // object is a literal
+                System.out.print(" \"" + object.toString() + "\"");
+            }
 
-			System.out.println(" .");
-		}
-	}
+            System.out.println(" .");
+        }
+    }
 
 
-	public KeySetView<Statement, Boolean> extractBaseStatements(){
+    public KeySetView<Statement, Boolean> extractBaseStatements() {
         baseStatements = ConcurrentHashMap.newKeySet();
         inferredStatements = ConcurrentHashMap.newKeySet();
 
@@ -85,56 +85,64 @@ public class OntologyInferer {
             baseStatements.add(stmt);
         }
 
-        return  baseStatements;
+        return baseStatements;
     }
 
-	public KeySetView<Statement, Boolean> extractInferredStatements(KeySetView<Statement, Boolean> baseStatements) throws IOException {
-		/**
-		 * https://jena.apache.org/documentation/ontology/
-		 * 
-		 * Jena does not have a means for distinguishing inferred statements from those
-		 * statements asserted into the base model
-		 */
+    public KeySetView<Statement, Boolean> extractInferredStatements(KeySetView<Statement, Boolean> baseStatements) throws IOException {
+        /**
+         * https://jena.apache.org/documentation/ontology/
+         *
+         * Jena does not have a means for distinguishing inferred statements from those
+         * statements asserted into the base model
+         */
 
         StmtIterator iter = this.baseOntModel.listStatements();
 
-		// create model for infer
-		infOntModel = ModelFactory.createOntologyModel(OntModelSpec.OWL_LITE_MEM_RDFS_INF, baseOntModel);
-		// set rdfs full
-		infOntModel.getReasoner().setParameter(ReasonerVocabulary.PROPsetRDFSLevel, ReasonerVocabulary.RDFS_FULL);
+//        // create tmpmodel
+//        infOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, baseOntModel);
+//
+//        // remove imports
+//        infOntModel.listImportedOntologyURIs().forEach(s -> {
+//            infOntModel.removeLoadedImport(s);
+//        });
 
-		// list the statements in the Inferred Model
-		iter = infOntModel.listStatements();
-		while (iter.hasNext()) {
-			Statement stmt = iter.nextStatement();
+        // create model for infer
+        infOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF, baseOntModel);
+        // set rdfs full
+        infOntModel.getReasoner().setParameter(ReasonerVocabulary.PROPsetRDFSLevel, ReasonerVocabulary.RDFS_FULL);
 
-			if (!baseStatements.contains(stmt)) {
-				inferredStatements.add(stmt);
-				// System.out.println(stmt);
-			}
-		}
+        // list the statements in the Inferred Model
+        iter = infOntModel.listStatements();
+        while (iter.hasNext()) {
+            Statement stmt = iter.nextStatement();
 
-		// infOntModel.getNsPrefixMap().entrySet().stream().forEach(e -> {
-		// System.out.println(e.getKey() + " " + e.getValue());
-		// });
+            if (!baseStatements.contains(stmt)) {
+                inferredStatements.add(stmt);
+                // System.out.println(stmt);
+            }
+        }
+
+        // infOntModel.getNsPrefixMap().entrySet().stream().forEach(e -> {
+        // System.out.println(e.getKey() + " " + e.getValue());
+        // });
 
         monitor.displayMessage("total base axioms: " + baseStatements.size(), true);
-        monitor.displayMessage("total inferred axioms: " + inferredStatements.size()+"\n", true);
+        monitor.displayMessage("total inferred axioms: " + inferredStatements.size() + "\n", true);
 
-		return inferredStatements;
-	}
+        return inferredStatements;
+    }
 
 
-	private static void loadInvalid() {
+    private static void loadInvalid() {
 
 //		invalidInfOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
 //		invalidInfOntModel.setStrictMode(true);
 //
 //		invalidInfOntModel.read("file:" + invalidOntologyPath + "lubm_invalid.owl");
 
-	}
+    }
 
-	private static void loadInput() {
+    private static void loadInput() {
 
 //		baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
 //		baseOntModel.setStrictMode(true);
@@ -143,9 +151,9 @@ public class OntologyInferer {
 //		System.out.println("Profile: " + baseOntModel.getProfile());
 //		System.out.println("Size of node/statement:" + baseOntModel.getGraph().size());
 
-	}
+    }
 
-	private static void loadInferred() {
+    private static void loadInferred() {
 
 //		infOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
 //		infOntModel.setStrictMode(true);
@@ -155,13 +163,14 @@ public class OntologyInferer {
 //
 //		infOntModel.read("file:" + fileName);
 
-	}
+    }
 
     /**
      * Save as owl file
+     *
      * @throws IOException
      */
-	public void saveInferred() throws IOException {
+    public void saveInferred() throws IOException {
 //		String[] names = inputOntologyFile.split("/");
 //		names = names[names.length - 1].split(".owl");
 //
@@ -173,37 +182,38 @@ public class OntologyInferer {
 //		});
 //		infOntModel.write(bfw);
 //		bfw.close();
-	}
+    }
 
     /**
      * For testing purpose
+     *
      * @param args
      * @throws IOException
      */
-	public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException {
 
-		/**
-		 * Load the input. It is the original schema + generated a box by amit's tool.
-		 */
-		loadInput();
+        /**
+         * Load the input. It is the original schema + generated a box by amit's tool.
+         */
+        loadInput();
 
-		// extractInferredStatements();
-		// saveInferred();
+        // extractInferredStatements();
+        // saveInferred();
 
-		/**
-		 * Load the rdfs inferred axioms
-		 */
-		loadInferred();
+        /**
+         * Load the rdfs inferred axioms
+         */
+        loadInferred();
 
-		/**
-		 * Invalid axioms. TODO: Here we need to generate some random....
-		 */
-		loadInvalid();
+        /**
+         * Invalid axioms. TODO: Here we need to generate some random....
+         */
+        loadInvalid();
 
 //		JSONMaker jsonMaker = new JSONMaker(baseOntModel, infOntModel, invalidInfOntModel);
 //		jsonMaker.makeJSON();
 
-		// generateNoiseTriples();
-	}
+        // generateNoiseTriples();
+    }
 
 }
