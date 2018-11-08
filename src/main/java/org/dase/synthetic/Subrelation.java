@@ -27,6 +27,7 @@ public class Subrelation {
     OntModel model;
     private Monitor monitor;
     private String savingPath;
+    private static int kg_no = 0;
 
     public Subrelation(Monitor monitor, String savingPath) {
         this.monitor = monitor;
@@ -43,7 +44,7 @@ public class Subrelation {
         ArrayList<OntClass> types = new ArrayList<>();
 
         for (int i = 0; i < limit; i++) {
-            OntClass ontClass = model.createClass(NS + "class" + i);
+            OntClass ontClass = model.createClass(NS + "class_"+kg_no+"_" + i);
             types.add(ontClass);
         }
 
@@ -68,7 +69,7 @@ public class Subrelation {
         ArrayList<Property> properties = new ArrayList<>();
 
         for (int i = 0; i < limit; i++) {
-            Property property = model.createProperty(NS + "property" + i);
+            Property property = model.createProperty(NS + "property_"+kg_no+"_" + i);
             properties.add(property);
         }
 
@@ -122,13 +123,16 @@ public class Subrelation {
 
     public static void main(String[] args) {
 
-        String saveTo = "/Users/sarker/Workspaces/ProjectKnowledgeGraph/data/Input Knowledge Graph synthetic/subProperty.rdf";
-        Subrelation sb = new Subrelation(null, saveTo);
-        sb.generateSynthetic(500, SyntheticType.Property_SubSumption);
+
+        for(kg_no=0;kg_no<5;kg_no++) {
+            String saveTo = "/home/sarker/Workspaces/Project Knowledge Graph/data/input ontologies/Input kG synthetic/training/subProperty_"+kg_no+".rdf";
+            Subrelation sb = new Subrelation(null, saveTo);
+            sb.generateSynthetic(30, SyntheticType.Property_SubSumption);
 
 
-        saveTo = "/Users/sarker/Workspaces/ProjectKnowledgeGraph/data/Input Knowledge Graph synthetic/subClass.rdf";
-        sb = new Subrelation(null, saveTo);
-        sb.generateSynthetic(500, SyntheticType.Class_SubSumption);
+            saveTo = "/home/sarker/Workspaces/Project Knowledge Graph/data/input ontologies/Input kG synthetic/training/subClass_"+kg_no+".rdf";
+            sb = new Subrelation(null, saveTo);
+            sb.generateSynthetic(30, SyntheticType.Class_SubSumption);
+        }
     }
 }

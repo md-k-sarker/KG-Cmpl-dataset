@@ -4,20 +4,16 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import org.apache.jena.base.Sys;
 import org.apache.jena.ontology.OntModel;
 import org.apache.jena.ontology.OntModelSpec;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.RDFS;
 import org.dase.IR.InvalidTripleGenerator;
@@ -25,7 +21,6 @@ import org.dase.IR.OntologyInferer;
 import org.dase.IR.SharedDataHolder;
 import org.dase.IR.Statistics;
 import org.dase.Utility.ConfigParams;
-import org.dase.Utility.JSONMaker;
 import org.dase.Utility.Monitor;
 import org.dase.Utility.Util;
 
@@ -113,26 +108,89 @@ public class Main {
     }
 
     private static void cleanSharedDataHolder() {
-        SharedDataHolder.baseStatements.clear();
-        SharedDataHolder.baseStatementsAfterReasoning.clear();
-        SharedDataHolder.baseStatementsAfterReasoningArrayList.clear();
-        SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.clear();
-        SharedDataHolder.inferredStatements.clear();
-        SharedDataHolder.invalidinferredStatements.clear();
-        SharedDataHolder.atomicConcepts.clear();
-        SharedDataHolder.individuals.clear();
-        SharedDataHolder.subjects.clear();
-        SharedDataHolder.predicates.clear();
-        SharedDataHolder.objects.clear();
+        SharedDataHolder.inferredOntModel = null;
+        SharedDataHolder.inferredOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF);
+        SharedDataHolder.invalidOntModel = null;
+        SharedDataHolder.invalidOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM_RDFS_INF);
+
+        SharedDataHolder.baseStatements = ConcurrentHashMap.newKeySet();
+        SharedDataHolder.baseStatementsAfterReasoning = ConcurrentHashMap.newKeySet();
+        SharedDataHolder.baseStatementsAfterReasoningArrayList = new ArrayList<>();
+        SharedDataHolder.inferredStatements = ConcurrentHashMap.newKeySet();
+        SharedDataHolder.inferredStatementsArrayList = new ArrayList<>();
+        SharedDataHolder.invalidinferredStatements = ConcurrentHashMap.newKeySet();
+
+        SharedDataHolder.rdfTypeStatementsInBaseStatementsArrayList = new ArrayList<>();
+        SharedDataHolder.rdfTypeStatementsInInferredStatementsArrayList = new ArrayList<>();
+        SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList = new ArrayList<>();
+        SharedDataHolder.rdfTypeStatementsInInvalidArrayList = new ArrayList<>();
+
+        SharedDataHolder.atomicConceptsInBaseAfterReasoning = new ArrayList<>();
+        SharedDataHolder.atomicConceptsInInferred = new ArrayList<>();
+        //SharedDataHolder.atomicConceptsInInvalid = new ArrayList<>();
+
+        SharedDataHolder.individualsInBaseAfterReasoning = new ArrayList<>();
+        SharedDataHolder.individualsInInferred = new ArrayList<>();
+        //SharedDataHolder.individualsInInvalid = new ArrayList<>();
+
+        SharedDataHolder.subjectsInBase = new ArrayList<>();
+        SharedDataHolder.subjectsInInferred = new ArrayList<>();
+        SharedDataHolder.subjectsInInvalid = new ArrayList<>();
+
+        SharedDataHolder.predicatesInBase = new ArrayList<>();
+        SharedDataHolder.predicatesInInferred = new ArrayList<>();
+        SharedDataHolder.predicatesInInvalid = new ArrayList<>();
+
+        SharedDataHolder.objectsInBase = new ArrayList<>();
+        SharedDataHolder.objectsInInferred = new ArrayList<>();
+        SharedDataHolder.objectsInInvalid = new ArrayList<>();
+
         // dont clean prefixmap
         //SharedDataHolder.prefixMap = new HashMap<>();
         SharedDataHolder.axiomaticTripleCounterInBase = 0;
         SharedDataHolder.axiomaticTripleCounterInInferred = 0;
         SharedDataHolder.axiomaticTripleCounterInInvalid = 0;
 
-        SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations = 0;
-        SharedDataHolder.totalSplitedModelFromBaseKG = 0;
+        SharedDataHolder.fullRandomTriplesInInvalid = 0;
+        SharedDataHolder.classChangeTriplesInInvalid = 0;
+        SharedDataHolder.individualChnageTriplesInInvalid = 0;
+        SharedDataHolder.trickyTriplesInInvalid = 0;
 
+        //SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations = 0;
+        //SharedDataHolder.totalSplitedModelFromBaseKG = 0;
+
+        // for invalid generation
+        SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList = new ArrayList<>();
+        SharedDataHolder.subjectsAfterReasoning = new ArrayList<>();
+        SharedDataHolder.predicatesAfterReasoning = new ArrayList<>();
+        SharedDataHolder.objectsAfterReasoning = new ArrayList<>();
+
+        SharedDataHolder.totalPermutationPossible = 0;
+
+    }
+
+    /**
+     * Prepare invalid generation
+     */
+    private static void prepareInvalidGeneration() {
+
+        HashSet<Resource> tmpSubjects = new HashSet<>();
+        tmpSubjects.addAll(SharedDataHolder.subjectsInBase);
+        tmpSubjects.addAll(SharedDataHolder.subjectsInInferred);
+        SharedDataHolder.subjectsAfterReasoning.addAll(tmpSubjects);
+
+        HashSet<Property> tmpPredicates = new HashSet<>();
+        tmpPredicates.addAll(SharedDataHolder.predicatesInBase);
+        tmpPredicates.addAll(SharedDataHolder.predicatesInInferred);
+        SharedDataHolder.predicatesAfterReasoning.addAll(tmpPredicates);
+
+        HashSet<RDFNode> tmpObjects = new HashSet<>();
+        tmpObjects.addAll(SharedDataHolder.objectsInBase);
+        tmpObjects.addAll(SharedDataHolder.objectsInInferred);
+        SharedDataHolder.objectsAfterReasoning.addAll(tmpObjects);
+
+        double base = (double) (SharedDataHolder.baseStatementsAfterReasoning.size());
+        SharedDataHolder.totalPermutationPossible = (long) Math.pow(base, 3);
     }
 
     /**
@@ -156,6 +214,32 @@ public class Main {
         monitor.displayMessage("Ontology size without annotations: " + baseOntModelWithoutAnnotations.listStatements().toList().size(), true);
         return baseOntModelWithoutAnnotations;
     }
+
+    /**
+     * @param monitor
+     */
+    private static void generateInvalid(Monitor monitor, Statistics stat) {
+        // to make it equal as inferred axioms.
+        int invalidTriplesNeeded = SharedDataHolder.inferredStatements.size();
+
+        // prepare
+        prepareInvalidGeneration();
+
+        monitor.displayMessage("Generating invalid triples....", true);
+        InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
+        invalidTripleGenerator.generateInvalidTriplesTricky();
+        System.out.println("tricky invalid: " + SharedDataHolder.trickyTriplesInInvalid);
+        System.out.println("total invalid: " + SharedDataHolder.invalidinferredStatements.size());
+        invalidTripleGenerator.generateInvalidTriples();
+        System.out.println("tricky invalid: " + SharedDataHolder.trickyTriplesInInvalid);
+        System.out.println("total invalid: " + SharedDataHolder.invalidinferredStatements.size());
+        monitor.displayMessage("Generating invalid triples finished", true);
+
+        monitor.displayMessage("Filling post statistics...", true);
+        stat.postFillStatistics();
+        monitor.displayMessage("Filling post statistics finished", true);
+    }
+
 
     private static void doOpsMultipleGraphFromSingleOntology(Monitor monitor, String inputOntFullPath) {
 
@@ -196,33 +280,33 @@ public class Main {
 
 
             Statistics stat = new Statistics(monitor, ontModel, baseStatements, baseOntModelWithInference, inferredStatements);
-            monitor.displayMessage("Filling statistics...", true);
+            monitor.displayMessage("Filling pre statistics...", true);
             stat.preFillStatistics();
-            monitor.displayMessage("Filling statistics finished", true);
+            monitor.displayMessage("Filling pre statistics finished", true);
 
-            int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
-            invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
-
-            monitor.displayMessage("Generating invalid triples....", true);
-            InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
-            invalidTripleGenerator.generateInvalidTriples();
-            monitor.displayMessage("Generating invalid triples finished", true);
+            // call to gen invalid
+            //generateInvalid(monitor, stat);
 
             monitor.displayMessage("Counting axiomatic triples...", true);
             stat.countAxiomaticTriples();
             monitor.displayMessage("Counting axiomatic triples finished", true);
 
-            JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
-            try {
-                String jsonPath = ConfigParams.outputJsonPath.replace(".json", "_" + modelCounter + ".json");
-                String graphName = SharedDataHolder.ontName;
-                if (null == graphName) {
-                    graphName = ConfigParams.inputOntoFileNameWithoutExtention + "_" + modelCounter;
-                }
-                jsonMaker.makeJSON(graphName, jsonPath);
-            } catch (IOException e) {
-                monitor.stopSystem(Util.getStackTraceAsString(e), true);
-            }
+            monitor.displayMessage("Counting axiomatic triples...", true);
+            stat.fillForOverAllStatistics();
+            monitor.displayMessage("Counting axiomatic triples finished", true);
+
+//            JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
+//            try {
+//                String jsonPath = ConfigParams.outputJsonPath.replace(".json", "_" + modelCounter + ".json");
+//                String graphName = SharedDataHolder.ontName;
+//                if (null == graphName) {
+//                    graphName = ConfigParams.inputOntoFileNameWithoutExtention + "_" + modelCounter;
+//                }
+//                jsonMaker.makeJSON(graphName, jsonPath);
+//            } catch (IOException e) {
+//                monitor.stopSystem(Util.getStackTraceAsString(e), true);
+//            }
+
         }
     }
 
@@ -293,21 +377,63 @@ public class Main {
         stat.preFillStatistics();
         monitor.displayMessage("Filling stattistics finished", true);
 
-        int invalidTriplesNeeded = Math.min(ConfigParams.noOfinvalidTriplesNeeded, SharedDataHolder.baseStatementsAfterReasoning.size());
-        invalidTriplesNeeded = Math.min(invalidTriplesNeeded, SharedDataHolder.inferredStatements.size());
+        // to make it equal with inferred axioms
+        int invalidTriplesNeeded = SharedDataHolder.inferredStatements.size();
 
         monitor.displayMessage("Generating invalid triples....", true);
         InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
+        invalidTripleGenerator.generateInvalidTriplesTricky();
         invalidTripleGenerator.generateInvalidTriples();
         monitor.displayMessage("Generating invalid triples finished", true);
 
 
-        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
-        try {
-            jsonMaker.makeJSON(SharedDataHolder.ontName, ConfigParams.outputJsonPath);
-        } catch (IOException e) {
-            monitor.stopSystem(Util.getStackTraceAsString(e), true);
-        }
+//        JSONMaker jsonMaker = new JSONMaker(monitor, restrictedBaseOntModel);
+//        try {
+//            jsonMaker.makeJSON(SharedDataHolder.ontName, ConfigParams.outputJsonPath);
+//        } catch (IOException e) {
+//            monitor.stopSystem(Util.getStackTraceAsString(e), true);
+//        }
+
+    }
+
+    /**
+     * Do the average of the arrays.
+     */
+    public static JsonObject overAllStatCounter(Gson statGson, JsonObject js) {
+
+        //
+        double avgBase = SharedDataHolder.baseTriplesArray.stream().mapToDouble(a -> a).average().getAsDouble();
+        js.add("Avg Base Facts", statGson.toJsonTree(avgBase));
+        double avgInf = SharedDataHolder.validInferredTriplesArray.stream().mapToDouble(a -> a).average().getAsDouble();
+        js.add("Avg Inf Facts", statGson.toJsonTree(avgInf));
+        js.add("Avg Invalid Facts", statGson.toJsonTree(SharedDataHolder.invalidInferredTriplesArray.stream().mapToDouble(a -> a).average().getAsDouble()));
+        //%
+        double axiomaticBasePercent = SharedDataHolder.axiomaticInBaseTriplesArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgBase;
+        js.add("Axiomatic in Base", statGson.toJsonTree(axiomaticBasePercent));
+        double rdfTypeInBasePercent = SharedDataHolder.rdfTypeTriplesInBaseArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgBase;
+        js.add("rdfType in Base", statGson.toJsonTree(rdfTypeInBasePercent));
+
+        double axiomaticInfPercent = SharedDataHolder.axiomaticInInferredTriplesArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgInf;
+        js.add("Axiomatic in Inferred", statGson.toJsonTree(axiomaticInfPercent));
+        double rdfTypeInInferred = SharedDataHolder.rdfTypeTriplesInInferredArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgInf;
+        js.add("rdfType in Inferred", statGson.toJsonTree(rdfTypeInInferred));
+        // count from file
+        js.add("Axiomatic in Invalid", statGson.toJsonTree(0));
+
+
+        double avgBaseEntity = SharedDataHolder.entitiesInBaseArray.stream().mapToDouble(a -> a).average().getAsDouble();
+        js.add("Entities in Base", statGson.toJsonTree(avgBaseEntity));
+        js.add("Classes in Base", statGson.toJsonTree(SharedDataHolder.classesInBaseArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgBaseEntity));
+        js.add("Individuals in Base", statGson.toJsonTree(SharedDataHolder.individualsInBaseArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgBaseEntity));
+        js.add("Relations in Base", statGson.toJsonTree(SharedDataHolder.relationsInBaseArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgBaseEntity));
+
+        double avgInfEntity = SharedDataHolder.entitiesInInferredArray.stream().mapToDouble(a -> a).average().getAsDouble();
+        js.add("Entities in Inferred", statGson.toJsonTree(avgInfEntity));
+        js.add("Classes in Inferred", statGson.toJsonTree(SharedDataHolder.classesInInferredArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgInfEntity));
+        js.add("Individuals in Inferred", statGson.toJsonTree(SharedDataHolder.individualsInInferredArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgInfEntity));
+        js.add("Relations in Inferred", statGson.toJsonTree(SharedDataHolder.relationsInInferredArray.stream().mapToDouble(a -> a).average().getAsDouble() / avgInfEntity));
+
+        return js;
     }
 
     public static void main(String[] args) {
@@ -315,9 +441,9 @@ public class Main {
 
         ConfigParams.init();
 
-        String statFileJSON = Paths.get(ConfigParams.logPath).toString().replace("_log.txt", "stat.json");
+        String statFileJSON = Paths.get(ConfigParams.logPath).toString().replace("log.txt", "stat_synthetic.json");
 
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(statFileJSON));) {
+        try (BufferedWriter statBufferredWriter = new BufferedWriter(new FileWriter(statFileJSON))) {
 
             // global log file to write
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(ConfigParams.logPath));
@@ -326,14 +452,14 @@ public class Main {
             programMonitor = new Monitor(printStream);
             programMonitor.start("Program started", true);
 
-            Gson gson = new Gson();
-            JsonObject jsonObject = new JsonObject();
+            Gson statGson = new Gson();
+            JsonObject statJsonObject = new JsonObject();
             JsonArray inputOntologiesJA = new JsonArray();
 
             if (ConfigParams.batchRun) {
 
                 Files.walk(Paths.get(ConfigParams.inputOntoRootPath)).filter(f -> f.toFile().isFile()).
-                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl")).forEach(f -> {
+                        filter(f -> f.toFile().getAbsolutePath().endsWith(".rdf") && !f.toFile().getAbsolutePath().startsWith(".")).forEach(f -> {
                     programMonitor.displayMessage("\n", true);
                     programMonitor.start("Program running for " + f.toAbsolutePath().toString(), true);
                     ConfigParams.setInputOntoPath(f.toAbsolutePath().toString());
@@ -341,26 +467,32 @@ public class Main {
                     doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
 
                     JsonObject js = new JsonObject();
-                    js.add("totalTriplesInBaseKGWithoutAnnotations", gson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
-                    js.add("totalSplitedModelFromBaseKG", gson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
+                    js.add("totalTriplesInBaseKGWithoutAnnotations", statGson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
+                    js.add("totalSplitedModelFromBaseKG", statGson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
 
-                    jsonObject.add(ConfigParams.inputOntoPath, js);
+                    statJsonObject.add(ConfigParams.inputOntoPath, js);
                     inputOntologiesJA.add(ConfigParams.inputOntoPath);
+
                 });
 
             } else {
                 doOpsMultipleGraphFromSingleOntology(programMonitor, ConfigParams.inputOntoPath);
 
                 JsonObject js = new JsonObject();
-                js.add("totalTriplesInBaseKGWithoutAnnotations", gson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
-                js.add("totalSplitedModelFromBaseKG", gson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
+                js.add("totalTriplesInBaseKGWithoutAnnotations", statGson.toJsonTree(SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations));
+                js.add("totalSplitedModelFromBaseKG", statGson.toJsonTree(SharedDataHolder.totalSplitedModelFromBaseKG));
 
-                jsonObject.add(ConfigParams.inputOntoPath, js);
+                statJsonObject.add(ConfigParams.inputOntoPath, js);
                 inputOntologiesJA.add(ConfigParams.inputOntoPath);
             }
 
-            jsonObject.add("Ontologies", inputOntologiesJA);
-            gson.toJson(jsonObject, bw);
+            statJsonObject.add("Ontologies", inputOntologiesJA);
+
+            JsonObject js = new JsonObject();
+            js = overAllStatCounter(statGson,js);
+            statJsonObject.add("stat", js);
+
+            statGson.toJson(statJsonObject, statBufferredWriter);
 
         } catch (Exception ex) {
             programMonitor.displayMessage("Program crashed", true);

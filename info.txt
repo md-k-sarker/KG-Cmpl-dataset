@@ -1,0 +1,18 @@
+Change type/Class
+    1. take a triple randomly of this form: :a rdf:type :classA
+    2. take other types (all types excluding classA) from ontology.
+    3. pick randomly any one from the types got in step 2. (Make sure the new type is not super type of :classA)
+    4. Create new triple: a rdf:type :chosenType
+    5. if new triple not exist in ontology (base+inferred) then add it to invalid ones.
+
+Change individual:
+    1. take a triple randomly of this form: :a rdf:type :classA
+    2. take other individuals (all individuals excluding :a) from ontology.
+    3. pick randomly any other individuals from the ontology. (Make sure the new individual is not of type :classA)
+    4. Create new triple: stmt = chosenIndividual rdf:type :classA
+    5. if new triple not exist in ontology (base+inferred) then add it to invalid ones.
+
+
+One of the problem is that this process is extremely slow to generate the invalid as it needs to identify class, individuals, their types and checking etc.
+
+I checked with small ontology (dbpedia: size 2.5MB, axioms: 30318) but it is taking nearly 30 minutes to just process 1/31 (1 part of total 31 parts of dbpedia, as 30318 axioms is divided into 31 parts) of this ontology. So for this ontology it will take 30*31 ~ 900 minutes. 

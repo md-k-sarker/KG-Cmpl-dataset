@@ -118,6 +118,7 @@ public class OntologyInferer {
 
             if (!baseStatements.contains(stmt)) {
                 inferredStatements.add(stmt);
+                SharedDataHolder.inferredOntModel.add(stmt);
                 // System.out.println(stmt);
             }
         }

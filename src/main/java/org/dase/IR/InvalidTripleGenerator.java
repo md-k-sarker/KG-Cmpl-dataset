@@ -1,37 +1,56 @@
 package org.dase.IR;
 
-import org.apache.jena.graph.Triple;
 import org.apache.jena.ontology.*;
 import org.apache.jena.rdf.model.*;
-import org.apache.jena.reasoner.ValidityReport;
-import org.apache.jena.vocabulary.ReasonerVocabulary;
 import org.dase.Utility.Monitor;
 import org.dase.Utility.Util;
 
+import java.util.ArrayList;
 import java.util.Random;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class InvalidTripleGenerator {
 
     private int randomSeed;
     private Random randomIndex;
     private Random randomType;
+    private Random randomEntity;
+    private Random randomC;
+    private Random randomY;
     private int triplesNeeded;
     // private ArrayList<Statement> originalStatements;
     private int generatedTripleCounter;
     private int totalStatements;
     private Monitor monitor;
+    private boolean canGenerateMore;
+    private long invalidTriplesGenAttempted;
+    private long invalidTriplesGenAttemptedTricky;
+    private long invalidTriplesGenAttemptedTypeChnage;
 
     public InvalidTripleGenerator(Monitor monitor, int randomSeed, int triplesNeeded) {
         this.randomSeed = randomSeed;
-        randomIndex = new Random(this.randomSeed);
-        randomType = new Random(this.randomSeed);
+        this.randomIndex = new Random(this.randomSeed);
+        this.randomType = new Random(this.randomSeed);
+        this.randomEntity = new Random(this.randomSeed);
+        this.randomC = new Random(this.randomSeed);
+        this.randomY = new Random(this.randomSeed);
         this.triplesNeeded = triplesNeeded;
-        generatedTripleCounter = 0;
-        totalStatements = SharedDataHolder.baseStatementsAfterReasoning.size();
+        this.generatedTripleCounter = 0;
+        this.totalStatements = SharedDataHolder.baseStatementsAfterReasoning.size();
         this.monitor = monitor;
+        this.canGenerateMore = true;
+        this.invalidTriplesGenAttempted = 0;
+        this.invalidTriplesGenAttemptedTricky = 0;
+        this.invalidTriplesGenAttemptedTypeChnage = 0;
     }
 
+    /**
+     * Whether more invalid generation is possible
+     *
+     * @return
+     */
+    private boolean canGenerateMoreInvalid() {
+        return canGenerateMore;
+    }
 
     private int generateRandomNumber(int bound) {
         return randomIndex.nextInt(bound);
@@ -42,13 +61,13 @@ public class InvalidTripleGenerator {
      * Take any 3 entity and make it a statement
      */
     private Statement generateRandomTripleByIndex() {
-        int subjectIndex = generateRandomNumber(totalStatements);
-        int predicateIndex = generateRandomNumber(totalStatements);
-        int objectIndex = generateRandomNumber(totalStatements);
+        int subjectIndex = generateRandomNumber(SharedDataHolder.subjectsAfterReasoning.size());
+        int predicateIndex = generateRandomNumber(SharedDataHolder.predicatesAfterReasoning.size());
+        int objectIndex = generateRandomNumber(SharedDataHolder.objectsAfterReasoning.size());
 
-        Resource subject = SharedDataHolder.subjects.get(subjectIndex); // get the subject
-        Property predicate = SharedDataHolder.predicates.get(predicateIndex);  // get the predicate
-        RDFNode object = SharedDataHolder.objects.get(objectIndex); // get the object
+        Resource subject = SharedDataHolder.subjectsAfterReasoning.get(subjectIndex); // get the subject
+        Property predicate = SharedDataHolder.predicatesAfterReasoning.get(predicateIndex);  // get the predicate
+        RDFNode object = SharedDataHolder.objectsAfterReasoning.get(objectIndex); // get the object
 
         Statement newStmt = ResourceFactory.createStatement(subject, predicate, object);
 
@@ -71,59 +90,172 @@ public class InvalidTripleGenerator {
         Statement stmt = null;
         Statement newStmt = null;
 
-        // change individual
-        Individual indv = null;
-        while (null == indv) {
-            int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
-            stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
-            // not all subject are individuals
-            if (stmt.getSubject().canAs(Individual.class)) {
-                indv = (Individual) stmt.getSubject().as(Individual.class);
-            }
-        }
-        Individual chosenIndv = null;
-        while (chosenIndv == null) {
-            int indivIndex = generateRandomNumber(SharedDataHolder.individuals.size());
-            Individual tmpIndv = SharedDataHolder.individuals.get(indivIndex);
-            if (!tmpIndv.equals(indv) && !isType(tmpIndv, (OntClass) stmt.getObject())) {
-                chosenIndv = tmpIndv;
-            }
-        }
-
-        newStmt = ResourceFactory.createStatement(chosenIndv, stmt.getPredicate(), stmt.getObject());
-
+//        int indvChooseAttempted = 0;
+//
+//        // change individual
+//        Individual indv = null;
+//        while (null == indv && indvChooseAttempted < SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size()) {
+//            // choose a triple first
+//            int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
+//            stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
+//            // not all subject are individuals
+//            if (stmt.getSubject().canAs(Individual.class) && stmt.getObject().canAs(OntClass.class)) {
+//                indv = (Individual) stmt.getSubject().as(Individual.class);
+//            }
+//            indvChooseAttempted++;
+//        }
+//
+//        indvChooseAttempted = 0;
+//        Individual chosenIndv = null;
+//        while (chosenIndv == null && indvChooseAttempted < SharedDataHolder.individualsInBaseAfterReasoning.size()) {
+//            int indivIndex = generateRandomNumber(SharedDataHolder.individualsInBaseAfterReasoning.size());
+//            Individual tmpIndv = SharedDataHolder.individualsInBaseAfterReasoning.get(indivIndex);
+//            // Bug: TODO: java.lang.ClassCastException: org.apache.jena.rdf.model.impl.ResourceImpl cannot be cast to org.apache.jena.ontology.OntClass
+//            //Puzzled!!! TODO: Dont know why object of rdfTypeStatementsAfterReasoningArrayList is not convertable to ontClass.
+//            // Added check stmt.getObject().canAs(OntClass.class) and .as(OntClass.class)
+//            if (!tmpIndv.equals(indv) && !isType(tmpIndv, (OntClass) stmt.getObject().as(OntClass.class))) {
+//                chosenIndv = tmpIndv;
+//            }
+//            indvChooseAttempted++;
+//        }
+//
+//        if (null != chosenIndv)
+//            newStmt = ResourceFactory.createStatement(chosenIndv, stmt.getPredicate(), stmt.getObject());
 
         return newStmt;
     }
 
-    /* @formatter:off
-     * taken triple :a rdf:type :classA
+    /**
+     * @formatter:off taken triple :a rdf:type :classA
      * 1. take other types (all types excluding classA) from ontology.
      * 2. pick randomly any one from the types.
      * make: stmt = a rdf:type :chosenType
      * 3. if stmt not exist in ontology
      * add it to invalid ones.
-     * */
+     * @formatter:on
+     */
     private Statement generateTripleByChangingClass() {
 
-        int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
-        Statement stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
+        Statement stmt = null;
         Statement newStmt = null;
 
-        // change ontclass
-        // need to check wether it returns a class type..
-        OntClass claz = (OntClass) stmt.getObject();
-        OntClass chosenClaz = null;
-        while (chosenClaz == null) {
-            int clazIndex = generateRandomNumber(SharedDataHolder.atomicConcepts.size());
-            OntClass tmpClaz = SharedDataHolder.atomicConcepts.get(clazIndex);
-            if (!tmpClaz.equals(claz)) {
-                chosenClaz = tmpClaz;
-            }
-        }
-        newStmt = ResourceFactory.createStatement(stmt.getSubject(), stmt.getPredicate(), chosenClaz);
+        int clazChooseAttempted = 0;
+
+//        OntClass initialClaz = null;
+//        while (null == initialClaz && clazChooseAttempted < SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size()) {
+//            int sIndex = generateRandomNumber(SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.size());
+//            stmt = SharedDataHolder.rdfTypeStatementsAfterReasoningArrayList.get(sIndex);
+//            if (stmt.getSubject().canAs(Individual.class) && stmt.getObject().canAs(OntClass.class)) {
+//                initialClaz = (OntClass) stmt.getObject().as(OntClass.class);
+//            }
+//            clazChooseAttempted++;
+//        }
+//
+//        clazChooseAttempted = 0;
+//        // change ontclass
+//        OntClass chosenClaz = null;
+//        while (chosenClaz == null && clazChooseAttempted < SharedDataHolder.atomicConceptsInBaseAfterReasoning.size()) {
+//            int clazIndex = generateRandomNumber(SharedDataHolder.atomicConceptsInBaseAfterReasoning.size());
+//            OntClass tmpClaz = SharedDataHolder.atomicConceptsInBaseAfterReasoning.get(clazIndex);
+//            if (!tmpClaz.equals(initialClaz) && !isType((Individual) stmt.getSubject().as(Individual.class), initialClaz)) {
+//                chosenClaz = tmpClaz;
+//            }
+//            clazChooseAttempted++;
+//        }
+//        if (null != chosenClaz)
+//            newStmt = ResourceFactory.createStatement(stmt.getSubject(), stmt.getPredicate(), chosenClaz);
         return newStmt;
     }
+
+
+    /**
+     * @return
+     * @formatter:off Steps:
+     * 1.       take any triple        s p o. (from the completion K’)
+     * 2.       randomly select one of s, p, or o (let’s call that x)
+     * 3.       retrieve all statements x rdf:type C from K’
+     * 4.       randomly select one of the C’s (C_ALL) retrieved in 3. Call that D
+     * 5.       retrieve all statements y rdf:type D from K’
+     * 6.       randomly select one of the y’s (Y_ALL) (call that y’)
+     * 7.       Replace x by y'in the  s p o triple. If this is *not* in K’, then add this to the new triples. If it is in K’, then loop back to 6.
+     * @formatter:on
+     */
+    private Statement generateTripleToMimicInferredOnes() {
+        Statement stmt = null;
+        Statement newStmt = null;
+        int attemptCounter = 0;
+
+        // step 1
+        int tripleIndex = generateRandomNumber(SharedDataHolder.inferredStatements.size());
+        stmt = SharedDataHolder.inferredStatementsArrayList.get(tripleIndex);
+
+        // step 2
+        int entityIndex = randomEntity.nextInt(3);
+        // selected entity from the selected triples
+        Resource X = null;
+        if (entityIndex == 0) {
+            //subject
+            X = stmt.getSubject();
+        } else if (entityIndex == 1) {
+            // predicate
+            X = stmt.getPredicate();
+        } else {
+            // object
+            attemptCounter = 0;
+            while (null == X && attemptCounter < SharedDataHolder.inferredStatements.size()) {
+                System.out.println("\tAttempted while2: " + attemptCounter);
+                if (stmt.getObject().canAs(Resource.class)) {
+                    X = stmt.getObject().as(Resource.class);
+                } else {
+                    stmt = SharedDataHolder.inferredStatementsArrayList.get(generateRandomNumber(SharedDataHolder.inferredStatements.size()));
+                }
+                attemptCounter++;
+            }
+        }
+
+        // step 3
+        ArrayList<Statement> statementsPhase1 = new ArrayList<>();
+        ArrayList<RDFNode> C_ALL = new ArrayList<>();
+        for (Statement eachStatement : SharedDataHolder.rdfTypeStatementsInInferredStatementsArrayList) {
+            if (eachStatement.getSubject().equals(X)) {
+                statementsPhase1.add(eachStatement);
+                C_ALL.add(eachStatement.getObject());
+            }
+        }
+
+        if(C_ALL.size()>0) {
+            // step 4
+            RDFNode D = C_ALL.get(randomC.nextInt(C_ALL.size()));
+
+            // step 5
+            ArrayList<Statement> statementsPhase2 = new ArrayList<>();
+            ArrayList<Resource> Y_ALL = new ArrayList<>();
+            SharedDataHolder.rdfTypeStatementsInInferredStatementsArrayList.forEach(statement -> {
+                if (statement.getObject().equals(D)) {
+                    statementsPhase2.add(statement);
+                    Y_ALL.add(statement.getSubject());
+                }
+            });
+
+            if(Y_ALL.size() > 0) {
+                attemptCounter = 0;
+                while (null == newStmt && attemptCounter < Y_ALL.size()) {
+                    //System.out.println("\tAttempted while3: " + attemptCounter);
+                    // step 6
+                    Resource subjectYSelected = Y_ALL.get(randomY.nextInt(Y_ALL.size()));
+                    Statement tmpStmt = ResourceFactory.createStatement(subjectYSelected, stmt.getPredicate(), stmt.getObject());
+                    if (!SharedDataHolder.inferredStatements.contains(tmpStmt) && !SharedDataHolder.invalidinferredStatements.contains(tmpStmt)) {
+                        newStmt = tmpStmt;
+                    }
+                    attemptCounter++;
+                }
+            }
+        }
+
+        return newStmt;
+
+    }
+
 
     /**
      * return true if indv rdf:type claz.
@@ -150,6 +282,18 @@ public class InvalidTripleGenerator {
         else return false;
     }
 
+    /**
+     * If this statement already exist or already generated.
+     *
+     * @param stmt
+     * @return
+     */
+    private boolean isExistInInferred(Statement stmt) {
+        if ((SharedDataHolder.inferredStatements.contains(stmt)) || SharedDataHolder.invalidinferredStatements.contains(stmt))
+            return true;
+        else return false;
+    }
+
 
 //    private void convertStatementsSetToList() {
 //        originalStatements = new ArrayList<>();
@@ -159,33 +303,121 @@ public class InvalidTripleGenerator {
 //    }
 
 
+    /**
+     * Generate invalid triples randomly
+     *
+     * @return
+     */
     public boolean generateInvalidTriples() {
 
         try {
-            while (this.generatedTripleCounter < this.triplesNeeded) {
+            while (this.generatedTripleCounter < this.triplesNeeded && invalidTriplesGenAttempted < SharedDataHolder.totalPermutationPossible) {
+                System.out.println("Attemped while1: " + invalidTriplesGenAttempted);
+
+                Statement newStmt = null;
+
+                // generate fully random
+                newStmt = generateRandomTripleByIndex();
+
+
+                if (!(null == newStmt))
+                    this.invalidTriplesGenAttempted++;
+                //monitor.writeMessage(" stmt type: " + tripleType);
+                if (!(null == newStmt) && !(isExist(newStmt))) {
+
+                    SharedDataHolder.fullRandomTriplesInInvalid++;
+
+                    SharedDataHolder.invalidinferredStatements.add(newStmt);
+                    SharedDataHolder.invalidOntModel.add(newStmt);
+                    this.generatedTripleCounter++;
+                }
+                //monitor.writeMessage("Gen. no. " + this.generatedTripleCounter + " invalid triple: " + newStmt.toString());
+            }
+            return true;
+        } catch (Exception ex) {
+            monitor.displayMessage(Util.getStackTraceAsString(ex), true);
+            return false;
+        }
+    }
+
+    /**
+     * Generate tricky ones by changing x with y [ref: Pascal]
+     *
+     * @return
+     */
+    public boolean generateInvalidTriplesTricky() {
+        try {
+
+            while (this.generatedTripleCounter < this.triplesNeeded && invalidTriplesGenAttemptedTricky < SharedDataHolder.totalPermutationPossible) {
+                System.out.println("Attemped while1: " + invalidTriplesGenAttemptedTricky);
+                Statement newStmt = generateTripleToMimicInferredOnes();
+
+                if (null != newStmt)
+                    this.invalidTriplesGenAttemptedTricky++;
+                if (!(null == newStmt) ) {
+                    // && !(isExistInInferred(newStmt)) this condition is already checked in generateTripleToMimicInferredOnes()
+                    SharedDataHolder.trickyTriplesInInvalid++;
+
+                    SharedDataHolder.invalidinferredStatements.add(newStmt);
+                    SharedDataHolder.invalidOntModel.add(newStmt);
+                    this.generatedTripleCounter++;
+                }
+            }
+            return true;
+        } catch (Exception ex) {
+            monitor.displayMessage(Util.getStackTraceAsString(ex), true);
+            return false;
+        }
+    }
+
+    /**
+     * Type change: change class and individual
+     *
+     * @return
+     */
+    public boolean generateInvalidTriplesTrickyTypeChange() {
+
+        try {
+            while (this.generatedTripleCounter < this.triplesNeeded && invalidTriplesGenAttemptedTypeChnage < SharedDataHolder.totalPermutationPossible) {
+                System.out.println("Attemped: " + invalidTriplesGenAttemptedTypeChnage);
+
+
+                Statement newStmt = null;
 
                 int tripleType = randomType.nextInt(2);
-                Statement newStmt = null;
                 if (tripleType == 0) {
-                    // generate fully random
-                    newStmt = generateRandomTripleByIndex();
-
-                } else if (tripleType == 1) {
                     // generate by changing individual
                     /**
                      * Extracting individuals is taking too much time
                      */
-                    newStmt = generateRandomTripleByIndex();
+                    // some-times individuals may not exist in the kb. TODO: have to check that.
+//                    if (SharedDataHolder.individualsInBaseAfterReasoning.size() < ConfigParams.noOfIndividualsMustHaveForChangingIndividuals) {
+//                        // generate by changing class
+//                        newStmt = generateTripleByChangingClass();
+//                    } else {
+//                        newStmt = generateTripleByChangingIndividual();
+//                    }
                 } else {
                     // generate by changing class
                     newStmt = generateTripleByChangingClass();
                 }
-                //monitor.writeMessage(" stmt type: " + tripleType);
+
+                if (null != newStmt)
+                    this.invalidTriplesGenAttemptedTypeChnage++;
                 if (!(null == newStmt) && !(isExist(newStmt))) {
+                    if (tripleType == 0) {
+//                        if (SharedDataHolder.individualsInBaseAfterReasoning.size() < ConfigParams.noOfIndividualsMustHaveForChangingIndividuals) {
+//                            SharedDataHolder.classChangeTriplesInInvalid++;
+//                        } else {
+//                            SharedDataHolder.individualChnageTriplesInInvalid++;
+//                        }
+                    } else {
+                        SharedDataHolder.classChangeTriplesInInvalid++;
+                    }
                     SharedDataHolder.invalidinferredStatements.add(newStmt);
+                    SharedDataHolder.invalidOntModel.add(newStmt);
                     this.generatedTripleCounter++;
                 }
-                //monitor.writeMessage("Gen. no. " + this.generatedTripleCounter + " invalid triple: " + newStmt.toString());
             }
             return true;
         } catch (Exception ex) {

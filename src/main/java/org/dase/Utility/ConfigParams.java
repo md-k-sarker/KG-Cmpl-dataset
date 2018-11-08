@@ -21,6 +21,9 @@ public final class ConfigParams {
     public static String namespace;
     public static int noOfBaseTriples;
     public static int noOfinvalidTriplesNeeded;
+
+    public static int noOfIndividualsMustHaveForChangingIndividuals=10;
+
     public static int randomSeed;
     public static boolean debug;
     public static boolean batchRun;
@@ -75,6 +78,7 @@ public final class ConfigParams {
             generateOutputPath();
         } else {
             inputOntoRootPath = prop.getProperty("file.inputOntology");
+            //System.out.println("inputOntoRootPath: "+inputOntoRootPath);
         }
     }
 
@@ -86,12 +90,12 @@ public final class ConfigParams {
     public static void generateOutputPath() {
 
         String name = Paths.get(inputOntoPath).getFileName().toString().
-                replace(".owl", ".json");
+                replace(".rdf", ".json");
         outputJsonPath = prop.getProperty("path.outputJson") + name;
     }
 
     public static void generateLogPath() {
-        logPath = prop.getProperty("path.outputLogPath") + "log.log";
+        logPath = prop.getProperty("path.outputLogPath") + "log.txt";
     }
 
     // private constructor, no instantiation

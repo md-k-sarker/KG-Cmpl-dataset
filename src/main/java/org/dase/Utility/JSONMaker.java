@@ -5,17 +5,11 @@ package org.dase.Utility;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap.KeySetView;
 
 import com.google.gson.*;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.ontology.Ontology;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.util.PrintUtil;
 
 import org.dase.IR.SharedDataHolder;
@@ -111,12 +105,34 @@ public class JSONMaker {
         this.monitor.writeMessage("josn size after adding prefix: " + jsonObject.size());
 		//gson.toJson(jsonObject, new FileWriter(jsonOutputFile1));
 
-        jsonObject.add("TotalBaseTriples",  gson.toJsonTree(SharedDataHolder.baseStatements.size()));
-        jsonObject.add("TotalInferredAxioms",  gson.toJsonTree(SharedDataHolder.inferredStatements.size()));
-        jsonObject.add("TotalInvalidInferredAxioms",  gson.toJsonTree(SharedDataHolder.invalidinferredStatements.size()));
-        jsonObject.add("AxiomaticTriplesInBase",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInBase));
-        jsonObject.add("AxiomaticTriplesInInferred",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInferred));
-        jsonObject.add("AxiomaticTriplesInInvalid",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInvalid));
+        jsonObject.add("TotalBase Triples",  gson.toJsonTree(new HashSet<>( SharedDataHolder.baseStatements).size()));
+        jsonObject.add("Axiomatic Triples in Base",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInBase));
+        jsonObject.add("rdf:TypeTriples in Base",  gson.toJsonTree(SharedDataHolder.rdfTypeStatementsInBaseStatementsArrayList.size()));
+        //jsonObject.add("TotalUniqueClasses in baseAfterReasoning",  gson.toJsonTree(new HashSet<>( SharedDataHolder.atomicConceptsInBaseAfterReasoning).size()));
+       // jsonObject.add("TotalUniqueIndividuals in baseAfterReasoning",  gson.toJsonTree(new HashSet<>( SharedDataHolder.individualsInBaseAfterReasoning).size()));
+        jsonObject.add("TotalUniqueSubjects in base",  gson.toJsonTree(new HashSet<>(SharedDataHolder.subjectsInBase).size()));
+        jsonObject.add("TotalUniquePredicates in base",  gson.toJsonTree(new HashSet<>( SharedDataHolder.predicatesInBase).size()));
+        jsonObject.add("TotalUniqueObjects in base",  gson.toJsonTree(new HashSet<>( SharedDataHolder.objectsInBase).size()));
+
+        jsonObject.add("TotalInferred Triples",  gson.toJsonTree(new HashSet<>( SharedDataHolder.inferredStatements).size()));
+        jsonObject.add("AxiomaticTriples in inferred",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInferred));
+        jsonObject.add("rdf:TypeTriples in inferred",  gson.toJsonTree(SharedDataHolder.rdfTypeStatementsInInferredStatementsArrayList.size()));
+        //jsonObject.add("TotalUniqueClasses in inferred",  gson.toJsonTree(new HashSet<>( SharedDataHolder.atomicConceptsInInferred).size()));
+        //jsonObject.add("TotalUniqueIndividuals in inferred",  gson.toJsonTree(new HashSet<>( SharedDataHolder.individualsInInferred).size()));
+        jsonObject.add("TotalUniqueSubjects in inferred",  gson.toJsonTree(new HashSet<>(SharedDataHolder.subjectsInInferred).size()));
+        jsonObject.add("TotalUniquePredicates in inferred",  gson.toJsonTree(new HashSet<>( SharedDataHolder.predicatesInInferred).size()));
+        jsonObject.add("TotalUniqueObjects in inferred",  gson.toJsonTree(new HashSet<>( SharedDataHolder.objectsInInferred).size()));
+
+        jsonObject.add("TotalInvalid Triples",  gson.toJsonTree(new HashSet<>(SharedDataHolder.invalidinferredStatements).size()));
+        jsonObject.add("AxiomaticTriples in invalid",  gson.toJsonTree(SharedDataHolder.axiomaticTripleCounterInInvalid));
+        jsonObject.add("rdf:TypeTriples in invalid",  gson.toJsonTree(SharedDataHolder.rdfTypeStatementsInInvalidArrayList.size()));
+		jsonObject.add("fullRandomTriples in invalid",  gson.toJsonTree(SharedDataHolder.fullRandomTriplesInInvalid));
+		jsonObject.add("trickyTriplesInInvalid in invalid",  gson.toJsonTree(SharedDataHolder.trickyTriplesInInvalid));
+//        jsonObject.add("TotalUniqueClasses in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.atomicConceptsInInvalid).size()));
+//        jsonObject.add("TotalUniqueIndividuals in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.individualsInInvalid).size()));
+        jsonObject.add("TotalUniqueSubjects in invalid",  gson.toJsonTree(new HashSet<>(SharedDataHolder.subjectsInInvalid).size()));
+        jsonObject.add("TotalUniquePredicates in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.predicatesInInvalid).size()));
+        jsonObject.add("TotalUniqueObjects in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.objectsInInvalid).size()));
 
 		// add input-axioms of the ontology
 		inputJA = new JsonArray();
