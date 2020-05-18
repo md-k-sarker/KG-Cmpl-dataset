@@ -22,7 +22,7 @@ public class InvalidTripleGenerator {
     private int totalStatements;
     private Monitor monitor;
     private boolean canGenerateMore;
-    private long invalidTriplesGenAttempted;
+    private long invalidTriplesGenAttemptedRandom;
     private long invalidTriplesGenAttemptedTricky;
     private long invalidTriplesGenAttemptedTypeChnage;
 
@@ -38,7 +38,7 @@ public class InvalidTripleGenerator {
         this.totalStatements = SharedDataHolder.baseStatementsAfterReasoning.size();
         this.monitor = monitor;
         this.canGenerateMore = true;
-        this.invalidTriplesGenAttempted = 0;
+        this.invalidTriplesGenAttemptedRandom = 0;
         this.invalidTriplesGenAttemptedTricky = 0;
         this.invalidTriplesGenAttemptedTypeChnage = 0;
     }
@@ -302,17 +302,16 @@ public class InvalidTripleGenerator {
 //        });
 //    }
 
-
     /**
      * Generate invalid triples randomly
      *
      * @return
      */
-    public boolean generateInvalidTriples() {
+    public boolean generateInvalidTriplesRandom() {
 
         try {
-            while (this.generatedTripleCounter < this.triplesNeeded && invalidTriplesGenAttempted < SharedDataHolder.totalPermutationPossible) {
-                System.out.println("Attemped while1: " + invalidTriplesGenAttempted);
+            while (this.generatedTripleCounter < this.triplesNeeded && invalidTriplesGenAttemptedRandom < SharedDataHolder.totalPermutationPossible) {
+                System.out.println("Attemped while1: " + invalidTriplesGenAttemptedRandom);
 
                 Statement newStmt = null;
 
@@ -321,7 +320,7 @@ public class InvalidTripleGenerator {
 
 
                 if (!(null == newStmt))
-                    this.invalidTriplesGenAttempted++;
+                    this.invalidTriplesGenAttemptedRandom++;
                 //monitor.writeMessage(" stmt type: " + tripleType);
                 if (!(null == newStmt) && !(isExist(newStmt))) {
 

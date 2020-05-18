@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.dase</groupId>
-    <artifactId>inductivereasoning</artifactId>
+    <artifactId>KG-Dataset</artifactId>
     <version>1.0-SNAPSHOT</version>
 
 
     <properties>
-        <finalAppName>Inductive Reasoning</finalAppName>
+        <finalAppName>${artifactId}</finalAppName>
 
         <jdk.source.version>1.8</jdk.source.version>
         <jdk.target.version>1.8</jdk.target.version>

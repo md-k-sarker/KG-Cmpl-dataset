@@ -21,9 +21,15 @@ import org.dase.IR.OntologyInferer;
 import org.dase.IR.SharedDataHolder;
 import org.dase.IR.Statistics;
 import org.dase.Utility.ConfigParams;
+import org.dase.Utility.JSONMaker;
 import org.dase.Utility.Monitor;
 import org.dase.Utility.Util;
 
+
+/**
+ * Main class to run the various parts/options of the program.
+ * This class is written as a script file.
+ */
 public class Main {
 
     private static PrintStream printStream;
@@ -81,6 +87,45 @@ public class Main {
         return baseOntModel;
 
     }
+
+    private static OntModel loadInputSingleKBFromSingleOntology(String inputOntologyFile, Monitor monitor) {
+
+        baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        baseOntModel.setStrictMode(true);
+
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loading.......", true);
+        baseOntModel.read("file:" + inputOntologyFile);
+        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
+        monitor.displayMessage("Profile: " + baseOntModel.getProfile().getLabel(), true);
+        monitor.displayMessage("Total No of axioms in base ontology: " + baseOntModel.listStatements().toList().size(), true);
+
+        SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
+        SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
+
+        /**
+         * Take around 700 statements only
+         */
+        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
+        restrictedBaseOntModel.setStrictMode(true);
+
+        ExtendedIterator iterator = baseOntModel.listStatements();
+        int counter = 0;
+        while (counter < ConfigParams.noOfBaseTriples) {
+            if (iterator.hasNext()) {
+                restrictedBaseOntModel.add((Statement) iterator.next());
+                counter++;
+            } else {
+                break;
+            }
+        }
+
+
+        monitor.displayMessage("Total No of axioms in restricted graph/ontology: " + restrictedBaseOntModel.listStatements().toList().size(), true);
+
+        return restrictedBaseOntModel;
+
+    }
+
 
     private static ArrayList<OntModel> splitInputOntology(Monitor monitor, OntModel baseOntModel) {
         monitor.displayMessage("Splitting input ontology.... ", true);
@@ -167,6 +212,9 @@ public class Main {
 
         SharedDataHolder.totalPermutationPossible = 0;
 
+        SharedDataHolder.inference_time_in_milisecond = 0;
+        SharedDataHolder.invalid_generation_time_in_milisecond = 0;
+        SharedDataHolder.output_writing_in_json_time_in_milisecond = 0;
     }
 
     /**
@@ -230,8 +278,8 @@ public class Main {
         invalidTripleGenerator.generateInvalidTriplesTricky();
         System.out.println("tricky invalid: " + SharedDataHolder.trickyTriplesInInvalid);
         System.out.println("total invalid: " + SharedDataHolder.invalidinferredStatements.size());
-        invalidTripleGenerator.generateInvalidTriples();
-        System.out.println("tricky invalid: " + SharedDataHolder.trickyTriplesInInvalid);
+        invalidTripleGenerator.generateInvalidTriplesRandom();
+        System.out.println("random invalid: " + SharedDataHolder.trickyTriplesInInvalid);
         System.out.println("total invalid: " + SharedDataHolder.invalidinferredStatements.size());
         monitor.displayMessage("Generating invalid triples finished", true);
 
@@ -252,11 +300,16 @@ public class Main {
         baseOntModel = loadInputMultipleGraphFromSingleOntology(inputOntFullPath, monitor);
         baseOntModelWithoutAnnotations = removeAnnotations(baseOntModel, monitor);
         ArrayList<OntModel> ontModels = splitInputOntology(monitor, baseOntModelWithoutAnnotations);
+
+
         SharedDataHolder.totalTriplesInBaseKGWithoutAnnotations = baseOntModelWithoutAnnotations.listStatements().toList().size();
         SharedDataHolder.totalSplitedModelFromBaseKG = ontModels.size();
 
+
         int modelCounter = 0;
         for (OntModel ontModel : ontModels) {
+
+            Long start_time = System.currentTimeMillis();
 
             cleanSharedDataHolder();
 
@@ -278,6 +331,8 @@ public class Main {
             }
             monitor.displayMessage("Inferring statements by rdfs reasoner finished.", true);
 
+            Long infer_end_time = System.currentTimeMillis();
+            SharedDataHolder.inference_time_in_milisecond = infer_end_time - start_time;
 
             Statistics stat = new Statistics(monitor, ontModel, baseStatements, baseOntModelWithInference, inferredStatements);
             monitor.displayMessage("Filling pre statistics...", true);
@@ -285,7 +340,10 @@ public class Main {
             monitor.displayMessage("Filling pre statistics finished", true);
 
             // call to gen invalid
-            //generateInvalid(monitor, stat);
+            generateInvalid(monitor, stat);
+
+            Long invalid_end_time = System.currentTimeMillis();
+            SharedDataHolder.invalid_generation_time_in_milisecond = invalid_end_time - infer_end_time;
 
             monitor.displayMessage("Counting axiomatic triples...", true);
             stat.countAxiomaticTriples();
@@ -295,58 +353,22 @@ public class Main {
             stat.fillForOverAllStatistics();
             monitor.displayMessage("Counting axiomatic triples finished", true);
 
-//            JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
-//            try {
-//                String jsonPath = ConfigParams.outputJsonPath.replace(".json", "_" + modelCounter + ".json");
-//                String graphName = SharedDataHolder.ontName;
-//                if (null == graphName) {
-//                    graphName = ConfigParams.inputOntoFileNameWithoutExtention + "_" + modelCounter;
-//                }
-//                jsonMaker.makeJSON(graphName, jsonPath);
-//            } catch (IOException e) {
-//                monitor.stopSystem(Util.getStackTraceAsString(e), true);
-//            }
-
-        }
-    }
-
-
-    private static OntModel loadInputSingleKBFromSingleOntology(String inputOntologyFile, Monitor monitor) {
-
-        baseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-        baseOntModel.setStrictMode(true);
-
-        monitor.displayMessage("Ontology: " + inputOntologyFile + " loading.......", true);
-        baseOntModel.read("file:" + inputOntologyFile);
-        monitor.displayMessage("Ontology: " + inputOntologyFile + " loaded", true);
-        monitor.displayMessage("Profile: " + baseOntModel.getProfile().getLabel(), true);
-        monitor.displayMessage("Total No of axioms in base ontology: " + baseOntModel.listStatements().toList().size(), true);
-
-        SharedDataHolder.prefixMap = baseOntModel.getNsPrefixMap();
-        SharedDataHolder.ontName = baseOntModel.getNsPrefixURI("");
-
-        /**
-         * Take around 700 statements only
-         */
-        restrictedBaseOntModel = ModelFactory.createOntologyModel(OntModelSpec.RDFS_MEM);
-        restrictedBaseOntModel.setStrictMode(true);
-
-        ExtendedIterator iterator = baseOntModel.listStatements();
-        int counter = 0;
-        while (counter < ConfigParams.noOfBaseTriples) {
-            if (iterator.hasNext()) {
-                restrictedBaseOntModel.add((Statement) iterator.next());
-                counter++;
-            } else {
-                break;
+            JSONMaker jsonMaker = new JSONMaker(monitor, ontModel);
+            try {
+                String jsonPath = ConfigParams.outputJsonPath.replace(".owl", "_" + modelCounter + ".json");
+//                String jsonPath = ConfigParams.outputJsonPath.replace(".owl", "_tricky_invalid" + ".json"); // "_" + modelCounter +
+                String graphName = SharedDataHolder.ontName;
+                if (null == graphName) {
+                    graphName = ConfigParams.inputOntoFileNameWithoutExtention; // + "_" + modelCounter;
+                }
+                jsonMaker.makeJSON(graphName, jsonPath);
+            } catch (IOException e) {
+                monitor.stopSystem(Util.getStackTraceAsString(e), true);
             }
+
+            Long end_time = System.currentTimeMillis();
+            SharedDataHolder.output_writing_in_json_time_in_milisecond = end_time - invalid_end_time;
         }
-
-
-        monitor.displayMessage("Total No of axioms in restricted graph/ontology: " + restrictedBaseOntModel.listStatements().toList().size(), true);
-
-        return restrictedBaseOntModel;
-
     }
 
     private static void doOpsSingleKBFromSingleOntology(Monitor monitor, String inputOntFullPath) {
@@ -383,7 +405,7 @@ public class Main {
         monitor.displayMessage("Generating invalid triples....", true);
         InvalidTripleGenerator invalidTripleGenerator = new InvalidTripleGenerator(monitor, ConfigParams.randomSeed, invalidTriplesNeeded);
         invalidTripleGenerator.generateInvalidTriplesTricky();
-        invalidTripleGenerator.generateInvalidTriples();
+        invalidTripleGenerator.generateInvalidTriplesRandom();
         monitor.displayMessage("Generating invalid triples finished", true);
 
 
@@ -441,7 +463,7 @@ public class Main {
 
         ConfigParams.init();
 
-        String statFileJSON = Paths.get(ConfigParams.logPath).toString().replace("log.txt", "stat_synthetic.json");
+        String statFileJSON = Paths.get(ConfigParams.logPath).toString().replace("log.txt", "stat.json");
 
         try (BufferedWriter statBufferredWriter = new BufferedWriter(new FileWriter(statFileJSON))) {
 
@@ -459,7 +481,7 @@ public class Main {
             if (ConfigParams.batchRun) {
 
                 Files.walk(Paths.get(ConfigParams.inputOntoRootPath)).filter(f -> f.toFile().isFile()).
-                        filter(f -> f.toFile().getAbsolutePath().endsWith(".rdf") && !f.toFile().getAbsolutePath().startsWith(".")).forEach(f -> {
+                        filter(f -> f.toFile().getAbsolutePath().endsWith(".owl") && !f.toFile().getAbsolutePath().startsWith(".")).forEach(f -> {
                     programMonitor.displayMessage("\n", true);
                     programMonitor.start("Program running for " + f.toAbsolutePath().toString(), true);
                     ConfigParams.setInputOntoPath(f.toAbsolutePath().toString());
@@ -489,12 +511,13 @@ public class Main {
             statJsonObject.add("Ontologies", inputOntologiesJA);
 
             JsonObject js = new JsonObject();
-            js = overAllStatCounter(statGson,js);
+            js = overAllStatCounter(statGson, js);
             statJsonObject.add("stat", js);
 
             statGson.toJson(statJsonObject, statBufferredWriter);
 
         } catch (Exception ex) {
+            ex.printStackTrace();
             programMonitor.displayMessage("Program crashed", true);
             programMonitor.displayMessage(Util.getStackTraceAsString(ex), true);
         } finally {

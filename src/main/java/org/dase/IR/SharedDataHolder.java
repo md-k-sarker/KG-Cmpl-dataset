@@ -124,6 +124,10 @@ public class SharedDataHolder {
     public static ArrayList<Integer> rdfTypeTriplesInBaseArray;
     public static ArrayList<Integer> rdfTypeTriplesInInferredArray;
 
+    public static long inference_time_in_milisecond = 0;
+    public static long invalid_generation_time_in_milisecond = 0;
+    public static long output_writing_in_json_time_in_milisecond = 0;
+
 
     static {
 

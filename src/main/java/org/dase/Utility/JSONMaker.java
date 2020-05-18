@@ -134,6 +134,10 @@ public class JSONMaker {
         jsonObject.add("TotalUniquePredicates in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.predicatesInInvalid).size()));
         jsonObject.add("TotalUniqueObjects in invalid",  gson.toJsonTree(new HashSet<>( SharedDataHolder.objectsInInvalid).size()));
 
+		jsonObject.add("Inference_time (miliseconds)",  gson.toJsonTree(SharedDataHolder.inference_time_in_milisecond));
+		jsonObject.add("Invalid triples generation time (miliseconds)",  gson.toJsonTree(SharedDataHolder.invalid_generation_time_in_milisecond));
+		jsonObject.add("Output (json_format) writing time (miliseconds)",  gson.toJsonTree(SharedDataHolder.output_writing_in_json_time_in_milisecond));
+
 		// add input-axioms of the ontology
 		inputJA = new JsonArray();
 		SharedDataHolder.baseStatements.forEach(stmt->{
@@ -166,7 +170,7 @@ public class JSONMaker {
 
 
         /**
-         * Please close the bufferredwriter/filewriter
+         * You must close the bufferredwriter/filewriter
          */
         monitor.displayMessage("\nWriting json to: "+writeTo+"\n", true);
         BufferedWriter bw = new BufferedWriter(new FileWriter(writeTo));

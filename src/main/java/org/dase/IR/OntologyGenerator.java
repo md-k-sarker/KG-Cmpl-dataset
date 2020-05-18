@@ -56,24 +56,7 @@ public class OntologyGenerator {
 	}
 	
 	public static void main(String [] args) {
-		OntologyGenerator og = new OntologyGenerator();
-	
-		Gson gson = new Gson();
-		
-		 Integer [] ints = new Integer[]{1,2,3,4};
-		 JsonArray ja = new JsonArray();
-		 ja.add(1);
-		 ja.add(2);
-		 ja.add(3);
-		 ja.add(4);
-		
-		JsonObject jo = new JsonObject();
-		jo.add("Hellow", new JsonPrimitive(1));
-		jo.add("array", ja);
-		
 
-		
-		System.out.print(" "+ jo);
 	}
 
 }
